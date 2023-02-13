@@ -1862,7 +1862,9 @@ void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeD
 	// part 1: generate TexDots
 	CurveYLMap ylMap_Text;
 	scanCurve(shapeHeight, shapeDepth, ylMap_Text);
-	float l_text = ylMap_Text.l_vec.back();
+	l_curve_text = ylMap_Text.l_vec.back();
+	l_curve_disp = l_curve_text;
+	float l_text = l_curve_text;
 	TextureDotsData Tex_Dots_text;
 	generateTexDots(shapeWidth, l_text, Tex_dot_density, Tex_dot_radius, Tex_dot_separation_ratio, Tex_Dots_text);
 
@@ -1884,12 +1886,14 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 	// part 1: generate TexDots and project to Disp Surface
 	CurveYLMap ylMap_Text;
 	scanCurve(shapeHeight, textDepth, ylMap_Text);
-	float l_text = ylMap_Text.l_vec.back();
+	l_curve_text = ylMap_Text.l_vec.back();
+	float l_text = l_curve_text;
 	TextureDotsData Tex_Dots_text, Tex_Dots_disp;
 	generateTexDots(shapeWidth, l_text, Tex_dot_density, Tex_dot_radius, Tex_dot_separation_ratio, Tex_Dots_text);
 
 	CurveYLMap ylMap_Disp;
 	scanCurve(shapeHeight, dispDepth, ylMap_Disp);
+	l_curve_disp = ylMap_Disp.l_vec.back();
 	ProjTexDots_ResizeMap TexDots_RszMap_Disp;
 	sampleTexDotsResize(ylMap_Text, ylMap_Disp, -(displayDist - dispDepth), TexDots_RszMap_Disp);
 	projectTexDots(-(displayDist - dispDepth), ylMap_Text, ylMap_Disp, Tex_Dots_text, TexDots_RszMap_Disp, Tex_Dots_disp);
@@ -1966,21 +1970,19 @@ void buildAllColorsVec(const VerticesData& vertices_data, AllTimeColorsVec& colo
 
 void updateVerticesData(int timeID) {
 
+	int movementID = int(timeID * speed_moderator) % (4 * nr_mvpts_max);
 
-	int nr_pts_unit = (nr_points_height - 1) / 4 / rock_movement_divider;
-	int movementID = int(timeID * 4 * speed_moderator) % (4 * nr_pts_unit);
-
-	if (movementID <= nr_pts_unit) {
+	if (movementID <= nr_mvpts_max) {
 		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[movementID];
 	}
-	else if (movementID <= 2 * nr_pts_unit) { // 20 - 40
-		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(2 * nr_pts_unit - movementID)];
+	else if (movementID <= 2 * nr_mvpts_max) { // 20 - 40
+		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(2 * nr_mvpts_max - movementID)];
 	}
-	else if (movementID <= 3 * nr_pts_unit) { // 40 - 60
-		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(nr_points_height - 1) + (2 * nr_pts_unit - movementID)];
+	else if (movementID <= 3 * nr_mvpts_max) { // 40 - 60
+		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(nr_points_height - 1) + (2 * nr_mvpts_max - movementID)];
 	}
 	else { // 60 - 80
-		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(nr_points_height - 1) - (4 * nr_pts_unit - movementID)];
+		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(nr_points_height - 1) - (4 * nr_mvpts_max - movementID)];
 	}
 
 }
@@ -2214,8 +2216,16 @@ void initBlock()
 void initMotionFlow() {
 
 	move_cnt = 0;
-	updateVerticesData(move_cnt);
-	motionFlowTime = cycle_num * cycle_time;
+	if (reinforce_texture_disparity) {
+		nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
+		speed_moderator = 3.5;
+	}
+	else {
+		nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
+		speed_moderator = 5;
+	}
+	updateEveryMs = cycle_time / (8 * nr_mvpts_max);
+	motionFlowTime = 0.5 * cycle_time;
 	last_time = trial_timer.getElapsedTimeInMilliSec();
 	timestamp_mtFlow = trial_timer.getElapsedTimeInMilliSec();
 
@@ -2254,15 +2264,13 @@ void initTrial()
 	}
 
 
-	jitter_z = ((rand() % 41) - 20) / 2.0; // from -10 to 10
+	jitter_z = 0;// ((rand() % 41) - 20) / 2.0; // from -10 to 10
 	display_distance_jittered = display_distance + jitter_z;
 
 	initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance_jittered, stimulus_visiblewidth);
 
 
 	// init movement 
-	speed_moderator = 2.2;
-	updateEveryMs = cycle_time / (nr_points_height - 1);
 	move_cnt = 0;
 
 	if (stimulus_built) {

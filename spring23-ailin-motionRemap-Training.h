@@ -185,6 +185,7 @@ double depth_mean = 40;
 double depth_delta = 0;
 double depth_text = 40;
 double depth_disp = 40;
+double l_curve_text, l_curve_disp;
 
 // training
 double depth_training_min = 20; // set in the subject file
@@ -285,11 +286,11 @@ float lightDir_z = 0.6;
 
 /********** MOVEMENT ***************/
 int move_cnt = 0;
-double speed_moderator = 2.2;
+int nr_mvpts_max = 20;
+double speed_moderator = 7;
 int rock_movement_divider = 2;
 double updateEveryMs = 30;
-double cycle_time = 6000;
-int cycle_num = 1;
+double cycle_time = 12000;
 double motionFlowTime = cycle_time;
 
 /********** ONLINE CONTROL ***************/

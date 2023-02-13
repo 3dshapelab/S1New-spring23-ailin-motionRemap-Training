@@ -86,10 +86,10 @@ Vector3d projectPoint(double shapeHeight, double newDepth, double distShapeToEye
 	return ToPoint;
 }
 
-float adjustAmbient(double textDepth, float maxInt, double rateAmbvsDiff_flat, double rateAmbvsDiff_deep, double Depth_flat, double Depth_deep){
+float adjustAmbient(double textDepth, float maxInt, double rateAmbvsDiff_flat, double rateAmbvsDiff_deep, double Depth_flat, double Depth_deep) {
 
-	double rateAmbvsDiff_new = rateAmbvsDiff_flat + (rateAmbvsDiff_deep - rateAmbvsDiff_flat) * (textDepth - Depth_flat)/(Depth_deep - Depth_flat);
-	float newAmbient = maxInt * (rateAmbvsDiff_new/(rateAmbvsDiff_new + 1));
+	double rateAmbvsDiff_new = rateAmbvsDiff_flat + (rateAmbvsDiff_deep - rateAmbvsDiff_flat) * (textDepth - Depth_flat) / (Depth_deep - Depth_flat);
+	float newAmbient = maxInt * (rateAmbvsDiff_new / (rateAmbvsDiff_new + 1));
 
 	return newAmbient;
 }
@@ -256,7 +256,7 @@ void drawFixation(double displayDist) {
 }
 
 void drawProgressBar() {
-	
+
 	glPushMatrix();
 	glLoadIdentity();
 	glTranslated(0, 0, display_distance);
@@ -288,35 +288,35 @@ void drawStimulus()
 	//draw_objEdge();
 
 
-	switch(current_stage){
+	switch (current_stage) {
 
-		case stimulus_preview:
-			// testing texture, build vertices for curved surface
-			drawSurface(display_distance, depth_disp, my_verts_static, my_contour_data);
-			
-			break;
+	case stimulus_preview:
+		// testing texture, build vertices for curved surface
+		drawSurface(display_distance, depth_disp, my_verts_static, my_contour_data);
 
-		case trial_fixate:
+		break;
 
-			drawFixation(display_distance_jittered);
+	case trial_fixate:
 
-			break;
+		drawFixation(display_distance_jittered);
 
-		case trial_viewStatic:
-		case trial_MSE_first:
-		case trial_MSE_reset_first:
-		case trial_MSE_second:
-		case trial_MSE_reset_second:
-			drawSurface(display_distance_jittered, depth_disp, my_verts_static, my_contour_data);
-			break;
+		break;
 
-		case trial_viewMtFlow:
-			drawSurface(display_distance_jittered, depth_disp, my_verts_moving, my_contour_data);
-			break;
+	case trial_viewStatic:
+	case trial_MSE_first:
+	case trial_MSE_reset_first:
+	case trial_MSE_second:
+	case trial_MSE_reset_second:
+		drawSurface(display_distance_jittered, depth_disp, my_verts_static, my_contour_data);
+		break;
 
-		case break_time:
-			drawProgressBar();
-			break;
+	case trial_viewMtFlow:
+		drawSurface(display_distance_jittered, depth_disp, my_verts_moving, my_contour_data);
+		break;
+
+	case break_time:
+		drawProgressBar();
+		break;
 
 
 	}
@@ -325,30 +325,30 @@ void drawStimulus()
 //Central function for projecting image onto the screen
 void drawGLScene()
 {
-		glDrawBuffer(GL_BACK_RIGHT);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0,0.0,0.0,1.0);
-		cam.setEye(eyeRight);
-		
+	glDrawBuffer(GL_BACK_RIGHT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	cam.setEye(eyeRight);
 
-		drawStimulus();
-		//drawPanel_Leye(true, display_distance_jittered, depth_disp);
-		drawInfo();
-		drawTaskGuide();
-		
-		
-		// Draw right eye view
-		glDrawBuffer(GL_BACK_LEFT);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0,0.0,0.0,1.0);
-		cam.setEye(eyeLeft);
-		
 
-		drawStimulus();
-		//drawPanel_Reye(true, display_distance_jittered, depth_disp);
-		drawInfo();
-		drawTaskGuide();
-		
+	drawStimulus();
+	//drawPanel_Leye(true, display_distance_jittered, depth_disp);
+	drawInfo();
+	drawTaskGuide();
+
+
+	// Draw right eye view
+	glDrawBuffer(GL_BACK_LEFT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	cam.setEye(eyeLeft);
+
+
+	drawStimulus();
+	//drawPanel_Reye(true, display_distance_jittered, depth_disp);
+	drawInfo();
+	drawTaskGuide();
+
 
 	glutSwapBuffers();
 	glutPostRedisplay();
@@ -356,8 +356,8 @@ void drawGLScene()
 
 void update(int value)
 {
-    glutPostRedisplay();
-    glutTimerFunc(TIMER_MS, update, 0);
+	glutPostRedisplay();
+	glutTimerFunc(TIMER_MS, update, 0);
 }
 
 
@@ -390,16 +390,16 @@ void drawInfo_calibrationMarkers(GLText curText) {
 	curText.draw(" ");
 	curText.draw(" ");
 
-	if (isVisible(markers[calibration_T].p) )
+	if (isVisible(markers[calibration_T].p))
 		glColor3fv(glGreen);
 	else
 		glColor3fv(glRed);
-	curText.draw("Thumb Calibration Point " + stringify< Eigen::Matrix<double, 1, 3> >(markers[calibration_T].p.transpose()));	
-	
-	if (isVisible(markers[calibration_I].p) )
+	curText.draw("Thumb Calibration Point " + stringify< Eigen::Matrix<double, 1, 3> >(markers[calibration_T].p.transpose()));
+
+	if (isVisible(markers[calibration_I].p))
 		glColor3fv(glGreen);
 	else
-		glColor3fv(glRed);	
+		glColor3fv(glRed);
 	curText.draw("Index Calibration Point " + stringify< Eigen::Matrix<double, 1, 3> >(markers[calibration_I].p.transpose()));
 
 	curText.draw(" ");
@@ -470,59 +470,59 @@ void drawTaskGuide() {
 
 
 		text.enterTextInputMode();
-		
+
 		switch (current_stage) {
 
-			case trial_MSE_first:
-			case trial_MSE_second:
-			{
-				glColor3fv(glWhite);
-				text.draw("                                                                           ESTIMATE:");
-				text.draw("                                                                           Press + to enter");
-				glColor3fv(glRed);
+		case trial_MSE_first:
+		case trial_MSE_second:
+		{
+			glColor3fv(glWhite);
+			text.draw("                                                                           ESTIMATE:");
+			text.draw("                                                                           Press + to enter");
+			glColor3fv(glRed);
 
-				if (!handNearHome)
-					text.draw("                                                                           | | > H < | |");
+			if (!handNearHome)
+				text.draw("                                                                           | | > H < | |");
 
-				if (!allVisibleFingers)
-					text.draw("                                                                            TT    XX");
+			if (!allVisibleFingers)
+				text.draw("                                                                            TT    XX");
 
-				if(attemped_MSE && !gripSteady)
-					text.draw("                                                                           Hold ...");
-			}
-			break;
+			if (attemped_MSE && !gripSteady)
+				text.draw("                                                                           Hold ...");
+		}
+		break;
 
-			case trial_MSE_reset_first:
-			{
-				glColor3fv(glWhite);
-				text.draw("                                                                           Home:");
-				glColor3fv(glRed);
-				if (!gripSmall)
-					text.draw("                                                                           T --> <-- X");
-				//if (!gripSteady)
-				//	text.draw("                                                                           Stop Changing Grip  ->  <-");
-			}
-			break;
+		case trial_MSE_reset_first:
+		{
+			glColor3fv(glWhite);
+			text.draw("                                                                           Home:");
+			glColor3fv(glRed);
+			if (!gripSmall)
+				text.draw("                                                                           T --> <-- X");
+			//if (!gripSteady)
+			//	text.draw("                                                                           Stop Changing Grip  ->  <-");
+		}
+		break;
 
 
-			case trial_MSE_reset_second:
-			{
-				//if(handNearHome && handSteady){
-				glColor3fv(glWhite);
+		case trial_MSE_reset_second:
+		{
+			//if(handNearHome && handSteady){
+			glColor3fv(glWhite);
 
-				text.draw("                                                                           Return Home:");
+			text.draw("                                                                           Return Home:");
 
-				glColor3fv(glRed);
-				if (!handNearHome)
-					text.draw("                                                                           Not Home |||>");
+			glColor3fv(glRed);
+			if (!handNearHome)
+				text.draw("                                                                           Not Home |||>");
 
-				if (holdCount_home > 1 && !handSteady && handNearHome)
-					text.draw("                                                                           Hold");
+			if (holdCount_home > 1 && !handSteady && handNearHome)
+				text.draw("                                                                           Hold");
 
-			}
-			break;
+		}
+		break;
 
-			
+
 		}
 		text.leaveTextInputMode();
 		glEnable(GL_COLOR_MATERIAL);
@@ -533,7 +533,7 @@ void drawTaskGuide() {
 void drawInfo()
 {
 	// displays relevant information to the screen
-	if ( visibleInfo )
+	if (visibleInfo)
 	{
 		glDisable(GL_COLOR_MATERIAL);
 		glDisable(GL_BLEND);
@@ -543,118 +543,119 @@ void drawInfo()
 		else
 			text.init(640, 480, glWhite, GLUT_BITMAP_HELVETICA_12);
 
-	
+
 		text.enterTextInputMode();
 
-		switch(current_stage){
+		switch (current_stage) {
 
-			case exp_initializing:
+		case exp_initializing:
 
-				glColor3fv(glWhite);
+			glColor3fv(glWhite);
 
-				switch (currentInitStep) {
+			switch (currentInitStep) {
 
-					case to_GetCalibrationPoints:
-					
-						text.draw("Press F to record calibration point positions.");
-						//drawInfo_alignment(text);
-						drawInfo_calibrationMarkers(text);
-					
-						break;
+			case to_GetCalibrationPoints:
 
-					case to_CalibrateFingerTips:
-						text.draw("Press F with index and thumb TIPS on calibration points.");
-						drawInfo_calibrationMarkers(text);
-						break;
-
-					case to_CalibrateFingerJoints:
-						text.draw("Press F with index and thumb JOINTS on calibration points.");
-						drawInfo_calibrationMarkers(text);
-						break;
-
-					case to_MarkHomePos:
-						text.draw("Press F with hand at home position.");
-						drawInfo_calibrationMarkers(text);
-						break;
-
-					case to_MoveApparatus:
-						text.draw("Press F to set apparatus in place.");
-						drawInfo_calibrationMarkers(text);
-						break;
-
-					case to_confirmReady:
-						text.draw("Press F to begin!");		
-						//drawInfo_fingers(text);
-						drawInfo_alignment(text);
-						//drawInfo_calibrationMarkers(text);
-						break;
-				}
+				text.draw("Press F to record calibration point positions.");
+				//drawInfo_alignment(text);
+				drawInfo_calibrationMarkers(text);
 
 				break;
 
-			case stimulus_preview:				
-				glColor3fv(glWhite);
-				text.draw("Welcome! press + to start training");
-				text.draw("# Name: " + subjectName);
-				text.draw("# IOD: " + stringify<double>(interoculardistance));
+			case to_CalibrateFingerTips:
+				text.draw("Press F with index and thumb TIPS on calibration points.");
+				drawInfo_calibrationMarkers(text);
+				break;
+
+			case to_CalibrateFingerJoints:
+				text.draw("Press F with index and thumb JOINTS on calibration points.");
+				drawInfo_calibrationMarkers(text);
+				break;
+
+			case to_MarkHomePos:
+				text.draw("Press F with hand at home position.");
+				drawInfo_calibrationMarkers(text);
+				break;
+
+			case to_MoveApparatus:
+				text.draw("Press F to set apparatus in place.");
+				drawInfo_calibrationMarkers(text);
+				break;
+
+			case to_confirmReady:
+				text.draw("Press F to begin!");
+				//drawInfo_fingers(text);
+				drawInfo_alignment(text);
+				//drawInfo_calibrationMarkers(text);
+				break;
+			}
+
+			break;
+
+		case stimulus_preview:
+			glColor3fv(glWhite);
+			text.draw("Welcome! press + to start training");
+			text.draw("# Name: " + subjectName);
+			text.draw("# IOD: " + stringify<double>(interoculardistance));
+			glColor3fv(glRed);
+			if (reinforce_texture_disparity) {
+				text.draw("----------------------------- P ----------");
+			}
+			else {
+				text.draw("--------- E ------------------------------");
+			}
+
+			//text.draw("# depth texture: " + stringify<double>(depth_text));
+			//text.draw("# depth stereo: " + stringify<double>(depth_disp));
+			//text.draw("                           ");
+			//text.draw("# LIGHT amb intensity: " + stringify<double>(amb_intensity));
+			//text.draw("# LIGHT z: " + stringify<float>(lightDir_z));
+			//text.draw("                           ");
+			//text.draw("#visualTarget_X: " + stringify<double>(visualTarget_X));	
+
+			//text.draw("centeredObjEdge" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge));
+			//text.draw("obj diff" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge_objM_diff));
+			//text.draw("velmex diff" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge_velmexM_diff));
+			break;
+
+		case trial_fixate:
+		case trial_viewStatic:
+		case trial_MSE_first:
+		case trial_MSE_reset_first:
+		case trial_viewMtFlow:
+		case trial_MSE_second:
+		case trial_MSE_reset_second:
+
+			text.draw(" ");
+			text.draw("# current stage: " + stringify<int>(current_stage));
+			text.draw("# trial Num: " + stringify<int>(trialNum));
+
+			text.draw("# depth texture: " + stringify<double>(depth_text));
+			text.draw("# depth stereo: " + stringify<double>(depth_disp));
+			text.draw("# elasped time: " + stringify<double>(ElapsedTime));
+			text.draw("# timestamp_mtFlow: " + stringify<double>(timestamp_mtFlow));
+
+			break;
+
+		case break_time:
+
+			switch (current_error_state) {
+			case no_error:
 				glColor3fv(glRed);
-				if(reinforce_texture_disparity){
-					text.draw("----------------------------- P ----------");
-				}else{
-					text.draw("--------- E ------------------------------");
-				}
-
-				//text.draw("# depth texture: " + stringify<double>(depth_text));
-				//text.draw("# depth stereo: " + stringify<double>(depth_disp));
-				//text.draw("                           ");
-				//text.draw("# LIGHT amb intensity: " + stringify<double>(amb_intensity));
-				//text.draw("# LIGHT z: " + stringify<float>(lightDir_z));
-				//text.draw("                           ");
-				//text.draw("#visualTarget_X: " + stringify<double>(visualTarget_X));	
-
-				//text.draw("centeredObjEdge" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge));
-				//text.draw("obj diff" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge_objM_diff));
-				//text.draw("velmex diff" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge_velmexM_diff));
+				text.draw("Break time! Press + to continue");
 				break;
 
-			case trial_fixate:
-			case trial_viewStatic:
-			case trial_MSE_first:
-			case trial_MSE_reset_first:
-			case trial_viewMtFlow:
-			case trial_MSE_second:
-			case trial_MSE_reset_second:
-				
-				text.draw(" ");
-				text.draw("# current stage: " + stringify<int>(current_stage));
-				text.draw("# trial Num: " + stringify<int>(trialNum));
-
-				text.draw("# depth texture: " + stringify<double>(depth_text));
-				text.draw("# depth stereo: " + stringify<double>(depth_disp));
-				text.draw("# elasped time: " + stringify<double>(ElapsedTime));
-				text.draw("# timestamp_mtFlow: " + stringify<double>(timestamp_mtFlow));
-
-				break;
-
-			case break_time:
-
-				switch(current_error_state){
-					case no_error:
-						glColor3fv(glRed);
-						text.draw("Break time! Press + to continue");
-						break;
-
-					case training_exceeded:
-						glColor3fv(glWhite);
-						text.draw("Pls call the experimenter!!!!!!!!!!!!! training exceed");
-						break;
-				}
-				break;
-
-			case exp_completed:
+			case training_exceeded:
 				glColor3fv(glWhite);
-				text.draw("The experiment is over. Thank you! :)");
+				text.draw("Pls call the experimenter!!!!!!!!!!!!! training exceed");
 				break;
+			}
+			break;
+
+		case exp_completed:
+			glColor3fv(glWhite);
+			text.draw("The experiment is over. Thank you! :)");
+			break;
 		}
 		text.leaveTextInputMode();
 		glEnable(GL_COLOR_MATERIAL);
@@ -666,34 +667,34 @@ void drawInfo()
 // Funzione che gestisce il ridimensionamento della finestra
 void handleResize(int w, int h)
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0,0,SCREEN_WIDTH, SCREEN_HEIGHT);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
 
 }
 
 
 
 
-void onlineTrial(){
+void onlineTrial() {
 	//stimulus_preview, prep_trial, trial_fixate_first, trial_present_first, trial_fixate_second, trial_present_second, trial_respond,
-	  
-	switch(current_stage){
+
+	switch (current_stage) {
 
 	case trial_fixate:
 
-		if (ElapsedTime > fixateTime) {	
+		if (ElapsedTime > fixateTime) {
 
 			current_stage = trial_viewStatic;
-		}		
+		}
 		break;
 
 	case trial_viewStatic:
 
 		if (testVisualStimuliOnly) {
 
-			if (ElapsedTime > 4 * fixateTime){
+			if (ElapsedTime > 4 * fixateTime) {
 				beepOk(21);
 				grip_aperture_MSE_first = 40;
 				initMotionFlow();
@@ -713,7 +714,7 @@ void onlineTrial(){
 
 	case trial_MSE_reset_first:
 		// MSE registered, close fingers to continue
-		if(gripSmall && gripSteady){
+		if (gripSmall && gripSteady) {
 			beepOk(22);
 			attemped_MSE = false;
 			initMotionFlow();
@@ -726,9 +727,10 @@ void onlineTrial(){
 		// monitor the time and update vertices
 		ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
 
-		if ( (ElapsedTime - timestamp_mtFlow) > motionFlowTime) {
+		if ((ElapsedTime - timestamp_mtFlow) > motionFlowTime) {
 			current_stage = trial_MSE_second;
-		}else{
+		}
+		else {
 			if (ElapsedTime - last_time > updateEveryMs) {
 				last_time = ElapsedTime;
 				move_cnt++;
@@ -763,8 +765,8 @@ void onlineTrial(){
 
 void advanceTrial()
 {
-		responseFile << fixed <<
-		subjectName << "\t" <<		
+	responseFile << fixed <<
+		subjectName << "\t" <<
 		interoculardistance << "\t" <<
 		blkNum << "\t" <<
 		trialNum << "\t" <<
@@ -772,13 +774,13 @@ void advanceTrial()
 		depth_delta << "\t" <<
 		depth_text << "\t" <<
 		depth_disp << "\t" <<
-		reinforce_texture_disparity  << "\t" <<
+		reinforce_texture_disparity << "\t" <<
 		display_distance_jittered << "\t" <<
 		grip_aperture_MSE_first << "\t" <<
 		grip_aperture_MSE_second << "\t" <<
 		timestamp_MSEend1 - timestamp_MSEstart1 << "\t" <<
 		timestamp_MSEend2 - timestamp_MSEstart2 << "\t" <<
-		calibrationNum << "\t" <<	
+		calibrationNum << "\t" <<
 		visual_angle << "\t" <<
 		stimulus_height << "\t" <<
 		stimulus_visiblewidth << "\t" <<
@@ -787,47 +789,51 @@ void advanceTrial()
 		Tex_dot_separation_ratio << "\t" <<
 		speed_moderator << "\t" <<
 		rock_movement_divider << "\t" <<
-		motionFlowTime 
-			<< endl;
+		motionFlowTime
+		<< endl;
 
 	//subjName\tIOD\tblockN\ttrialN\tdisplayDistance\tvisualAngle\tclyHorizontal\ttexnum\ttextNomralizer\ttestDepth\tprobeStart\tprobeDepth\ttime
-	if(training){
-		if(trialNum < trainNum_cap){
+	if (training) {
+		if (trialNum < trainNum_cap) {
 			beepOk(4);
 			trialNum++;
 			initTrial();
-		}else{
+		}
+		else {
 			beepOk(24);
 			trialNum++;
 			current_error_state = training_exceeded;
 			current_stage = break_time;
-			visibleInfo = true;			
+			visibleInfo = true;
 		}
 
-	}else{
+	}
+	else {
 
 		//trial.next(respond_cmp_deeper);	
 
-		if (!trial.isEmpty() && (trialNum < trialNum_max)){
+		if (!trial.isEmpty() && (trialNum < trialNum_max)) {
 
-			if(trialNum % 24 == 0){
-				beepOk(4);				
-				percentComplete = trialNum /(totalTrNum/100.0);	
+			if (trialNum % 24 == 0) {
+				beepOk(4);
+				percentComplete = trialNum / (totalTrNum / 100.0);
 				trial.next();
 				current_stage = break_time;
 				visibleInfo = true;
 
-			}else{
+			}
+			else {
 				beepOk(4);
 				trialNum++;
 				trial.next();
 				initTrial();
 			}
-			
-		}else{
+
+		}
+		else {
 			beepOk(1);
 			responseFile.close();
-			visibleInfo=true;
+			visibleInfo = true;
 			current_stage = exp_completed;
 		}
 
@@ -839,200 +845,203 @@ void advanceTrial()
 
 
 void handleKeypress(unsigned char key, int x, int y)
-{   
-	switch (key){ // key presses that work regardless of the stage
-	
-		case 27:	//corrisponde al tasto ESC
+{
+	switch (key) { // key presses that work regardless of the stage
 
-			if(resetScreen_betweenRuns){
-				homeEverything(5000,4500);
-				shutdown();	
-			}else{
-				shutdown();	
-			}
-				
+	case 27:	//corrisponde al tasto ESC
+
+		if (resetScreen_betweenRuns) {
+			homeEverything(5000, 4500);
+			shutdown();
+		}
+		else {
+			shutdown();
+		}
+
 		break;
 
-		case 'a':
-			grip_aperture_MSE_first = 999;
-			advanceTrial();
-			break;
+	case 'a':
+		grip_aperture_MSE_first = 999;
+		advanceTrial();
+		break;
 
-		case 'i':
-			visibleInfo=!visibleInfo;
+	case 'i':
+		visibleInfo = !visibleInfo;
 		break;
 
 
-		case '1':
-			
-			if(current_stage == stimulus_preview){
-				if (depth_text > depth_inc)
-					depth_text = depth_text - depth_inc;
+	case '1':
 
-				initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+		if (current_stage == stimulus_preview) {
+			if (depth_text > depth_inc)
+				depth_text = depth_text - depth_inc;
 
-			}
-			
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+
+		}
+
+		break;
+
+	case '2':
+
+		if (current_stage == stimulus_preview) {
+			depth_text = depth_text + depth_inc;
+
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+		}
+
+		break;
+
+	case 'R':
+	case 'r':
+
+		switch (current_error_state) {
+		case no_error:
+			initTrial();
+			break;
+		}
+
+		break;
+
+
+	case 'f':
+	case 'F':
+	{
+		switch (currentInitStep)
+		{
+		case to_GetCalibrationPoints:
+		case to_CalibrateFingerTips:
+		case to_CalibrateFingerJoints:
+
+			calibrate_fingers();
+
 			break;
 
-		case '2':
-		
-			if(current_stage == stimulus_preview){
-				depth_text = depth_text + depth_inc;
+		case to_MoveApparatus:
+		case to_MarkHomePos:
+		case to_confirmReady:
 
-				initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+			calibrate_system();
+
+			break;
+		}
+	}
+	break;
+
+	case 'q':
+		Fingers_Calibrated = false;
+		currentInitStep = to_GetCalibrationPoints;
+		current_stage = exp_initializing;
+		visibleInfo = true;
+		break;
+
+	case '+':
+		switch (current_stage) {
+		case stimulus_preview:
+
+			beepOk(5);
+			visibleInfo = false;
+			initBlock();
+			initTrial();
+			break;
+
+		case trial_MSE_first:
+
+			attemped_MSE = true;
+
+			if ((grip_aperture < 200) && handNearHome && gripSteady) {
+
+				beepOk(4);
+				grip_aperture_MSE_first = grip_aperture;
+				timestamp_MSEend1 = ElapsedTime;
+				current_stage = trial_MSE_reset_first;
 			}
 
 			break;
 
-		case 'R':
-		case 'r':
+		case trial_MSE_second:
 
-			switch(current_error_state){
-				case no_error:
-					initTrial();
-					break;
+			if (testVisualStimuliOnly) {
+				beepOk(4);
+				grip_aperture_MSE_second = 120;
+				timestamp_MSEend2 = ElapsedTime;
+				current_stage = trial_MSE_reset_second;
 			}
-			
-			break;
+			else {
+				attemped_MSE = true;
 
+				if ((grip_aperture < 200) && handNearHome && gripSteady) {
 
-		case 'f':
-		case 'F':
-			{ 
-				switch (currentInitStep)
-				{ 
-					case to_GetCalibrationPoints:
-					case to_CalibrateFingerTips:
-					case to_CalibrateFingerJoints:
-
-						calibrate_fingers();
-												
-					break;
-
-					case to_MoveApparatus:
-					case to_MarkHomePos:
-					case to_confirmReady:
-
-						calibrate_system();
-
-					break;									
+					beepOk(4);
+					grip_aperture_MSE_second = grip_aperture;
+					timestamp_MSEend2 = ElapsedTime;
+					current_stage = trial_MSE_reset_second;
 				}
 			}
+
+			break;
+
+		case break_time:
+			if (abs(mirrorAlignment - 45.0) < 0.2) {
+				beepOk(5);
+				visibleInfo = false;
+				trialNum++;
+				initTrial();
+			}
+			else {
+				beepOk(20);
+			}
+			break;
+		}
 		break;
 
-		case 'q':
-			Fingers_Calibrated = false;
-			currentInitStep = to_GetCalibrationPoints;
-			current_stage = exp_initializing;
+	case 'T':
+	case 't':
+		if (training && (current_stage != stimulus_preview)) {
+			training = false;
+			task_guide_info = false;
+			beepOk(6);
+			trialNum = 0;
+
+			if (current_error_state == training_exceeded) {
+				current_error_state = no_error;
+			}
+
 			visibleInfo = true;
-			break;
-			
-		case '+':
-			switch(current_stage){
-				case stimulus_preview:
-					
-					beepOk(5);
-					visibleInfo = false;
-					initBlock();
-					initTrial();					
-				break;	
+			current_stage = break_time;
+		}
+		break;
 
-				case trial_MSE_first:
+	case '7':
 
-					attemped_MSE = true;
+		if (current_stage == stimulus_preview) {
 
-					if((grip_aperture < 200) && handNearHome && gripSteady){
-							
-						beepOk(4);
-						grip_aperture_MSE_first = grip_aperture;
-						timestamp_MSEend1 = ElapsedTime;
-						current_stage = trial_MSE_reset_first;						
-					}
-						
-				break;
+			if (depth_disp > depth_inc)
+				depth_disp = depth_disp - depth_inc;
 
-				case trial_MSE_second:
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
 
-					if (testVisualStimuliOnly) {
-						beepOk(4);
-						grip_aperture_MSE_second = 120;
-						timestamp_MSEend2 = ElapsedTime;
-						current_stage = trial_MSE_reset_second;
-					}else{
-						attemped_MSE = true;
+		}
 
-						if ((grip_aperture < 200) && handNearHome && gripSteady) {
+		break;
 
-							beepOk(4);
-							grip_aperture_MSE_second = grip_aperture;
-							timestamp_MSEend2 = ElapsedTime;
-							current_stage = trial_MSE_reset_second;
-						}
-					}
+	case '8':
 
-					break;
+		if (current_stage == stimulus_preview) {
 
-				case break_time:
-					if (abs(mirrorAlignment - 45.0) < 0.2){
-						beepOk(5);
-						visibleInfo = false;
-						trialNum++;
-						initTrial();
-					}else{
-						beepOk(20);
-					}
-				break;				
-			}
-			break;
+			depth_disp = depth_disp + depth_inc;
 
-		case 'T':
-		case 't':
-			if(training && (current_stage != stimulus_preview)){
-				training = false;
-				task_guide_info = false;
-				beepOk(6);
-				trialNum = 0;
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
 
-				if(current_error_state == training_exceeded){
-					current_error_state = no_error;
-				}
+		}
 
-				visibleInfo = true;
-				current_stage = break_time;
-			}
-			break;
+		break;
 
-		case '7':
-			
-			if(current_stage == stimulus_preview){
-				
-				if (depth_disp > depth_inc)
-					depth_disp = depth_disp - depth_inc;
+	case 'h':
+		task_guide_info = true;
+		break;
 
-				initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
-				
-			}
 
-			break;
-
-		case '8':
-			
-			if(current_stage == stimulus_preview){
-				
-				depth_disp = depth_disp + depth_inc;
-
-				initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
-				
-			}
-			
-			break;
-
-		case 'h':
-			task_guide_info = true;
-			break;
-
-			
 	}
 
 }
@@ -1041,85 +1050,85 @@ void handleKeypress(unsigned char key, int x, int y)
 void beepOk(int tone)
 {
 
-	switch(tone)
+	switch (tone)
 	{
 
 	case 1: //high pitch beep
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-8_lowpass.wav", NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-8_lowpass.wav", NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 4: //mellow and good for trials
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-440-pluck.wav", NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-440-pluck.wav", NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 2: //reject like buzz
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-10.wav", NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-10.wav", NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 3: //reject short
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-reject.wav", NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-reject.wav", NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 5: //"go"
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\spoken-go.wav", NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\spoken-go.wav", NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 6: //mellow and good for trials
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-lowBubblePop.wav", NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-lowBubblePop.wav", NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 8: //spoken mirror
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\spoken-mirror.wav", NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\spoken-mirror.wav", NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 9: //mellow and good for trials
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-highBubblePop.wav", NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-highBubblePop.wav", NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 15:
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-rising.wav",
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-rising.wav",
 			NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		break;
 
 	case 16:
-		PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-falling.wav",
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-falling.wav",
 			NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		break;
 
 	case 17:
-	PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-440-pluck-5below.wav",
-		NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-440-pluck-5below.wav",
+			NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 18: // light click
-	PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\beep-click3MS.wav",
-		NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\beep-click3MS.wav",
+			NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 20: // alighnment
-	PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\spoken-alignment.wav",
-		NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\spoken-alignment.wav",
+			NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 21: // estimate
-	PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\spoken-estimate-short.wav",
-		NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\spoken-estimate-short.wav",
+			NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 22: // grasp
-	PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\spoken-grasp-short.wav",
-		NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\spoken-grasp-short.wav",
+			NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 23: // home
-	PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\spoken-home.wav",
-		NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\spoken-home.wav",
+			NULL, SND_FILENAME | SND_ASYNC);
+		break;
 
 	case 24: // help
-	PlaySound((LPCSTR) "C:\\cncsvision\\data\\beep\\spoken-help.wav",
-		NULL, SND_FILENAME | SND_ASYNC);
-	break;
+		PlaySound((LPCSTR)"C:\\cncsvision\\data\\beep\\spoken-help.wav",
+			NULL, SND_FILENAME | SND_ASYNC);
+		break;
 	}
 	return;
 }
@@ -1870,17 +1879,19 @@ void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeD
 
 	// part 2: static surface
 	CurvePtsData y_curve_data_text;
-	nr_points_height = buildCurve_byDelY(ylMap_Text, y_curve_data_text);
+	int nr_points_height_static = buildCurve_byDelY(ylMap_Text, y_curve_data_text);
 	buildSurfaceVertices_congruent(shapeWidth, y_curve_data_text, Tex_Dots_text, my_verts_static);
 	buildContour(contourPanelSeparation, y_curve_data_text, y_curve_data_text, -(displayDist - shapeDepth), my_contour_data);
 
 	// part 3: prebuild movement
-	my_verts_moving = my_verts_static;
+	CurvePtsData y_curve_data_text_m;
+	nr_points_height = buildCurve_byDelL(ylMap_Text, y_curve_data_text_m);
+	buildSurfaceVertices_congruent(shapeWidth, y_curve_data_text_m, Tex_Dots_text, my_verts_moving);
 	buildAllColorsVec(my_verts_moving, AllTimeColorsVec_Moving);
 
 }
 
-void buildSurface_incongruent(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double displayDist,  double contourPanelSeparation) {
+void buildSurface_incongruent(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double displayDist, double contourPanelSeparation) {
 
 
 	// part 1: generate TexDots and project to Disp Surface
@@ -1910,7 +1921,7 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 	if (reinforce_texture_disparity) {
 		nr_points_height = buildCurve_byDelL(ylMap_Text, y_curve_data_text_m);
 		projectCurve(ylMap_Text, -(displayDist - dispDepth), y_curve_data_text_m, y_curve_data_disp_m);
-		buildSurfaceVertices_TexDotsOnText(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, -(displayDist - dispDepth), Tex_Dots_disp, my_verts_moving);
+		buildSurfaceVertices_TexDotsOnText(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, -(displayDist - dispDepth), Tex_Dots_text, my_verts_moving);
 	}
 	else {
 		nr_points_height = buildCurve_byDelL(ylMap_Disp, y_curve_data_disp_m);
@@ -1989,7 +2000,7 @@ void updateVerticesData(int timeID) {
 
 
 void initSurface(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double displayDist, double contourPanelSeparation) {
-	
+
 	stimulus_built = false;
 	if (abs(textDepth - dispDepth) < 0.1) {
 		buildSurface_congruent(shapeWidth, shapeHeight, textDepth, displayDist, contourPanelSeparation);
@@ -2003,7 +2014,7 @@ void initSurface(double shapeWidth, double shapeHeight, double dispDepth, double
 }
 
 void idle()
-{	
+{
 	if (!testVisualStimuliOnly) {
 		updateTheMarkers();
 		online_apparatus_alignment();
@@ -2011,7 +2022,7 @@ void idle()
 	}
 	onlineTrial();
 	ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
-	
+
 }
 
 
@@ -2218,14 +2229,14 @@ void initMotionFlow() {
 	move_cnt = 0;
 	if (reinforce_texture_disparity) {
 		nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
-		speed_moderator = 3.5;
+		speed_moderator = 7.5;
 	}
 	else {
 		nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
 		speed_moderator = 5;
 	}
 	updateEveryMs = cycle_time / (8 * nr_mvpts_max);
-	motionFlowTime = 0.5 * cycle_time;
+	motionFlowTime = 0.25 * cycle_time;
 	last_time = trial_timer.getElapsedTimeInMilliSec();
 	timestamp_mtFlow = trial_timer.getElapsedTimeInMilliSec();
 
@@ -2288,44 +2299,47 @@ void initTrial()
 /*** Online operations ***/
 void online_apparatus_alignment()
 {
-    // mirror alignment check
-	if(isVisible(markers.at(mirror1).p) && isVisible(markers.at(mirror2).p) ){
+	// mirror alignment check
+	if (isVisible(markers.at(mirror1).p) && isVisible(markers.at(mirror2).p)) {
 		mirrorAlignment = asin(
 			abs((markers.at(mirror1).p.z() - markers.at(mirror2).p.z())) /
 			sqrt(
-			pow(markers.at(mirror1).p.x() - markers.at(mirror2).p.x(), 2) +
-			pow(markers.at(mirror1).p.z() - markers.at(mirror2).p.z(), 2)
+				pow(markers.at(mirror1).p.x() - markers.at(mirror2).p.x(), 2) +
+				pow(markers.at(mirror1).p.z() - markers.at(mirror2).p.z(), 2)
 			)
-		   ) * 180 / M_PI;
-	}else{
+		) * 180 / M_PI;
+	}
+	else {
 		mirrorAlignment = 999;
 	}
 
-    // screen Y alignment check
-	if(isVisible(markers.at(screen1).p) && isVisible(markers.at(screen3).p) ){
+	// screen Y alignment check
+	if (isVisible(markers.at(screen1).p) && isVisible(markers.at(screen3).p)) {
 		screenAlignmentY = asin(
 			abs((markers.at(screen1).p.y() - markers.at(screen3).p.y())) /
 			sqrt(
-			pow(markers.at(screen1).p.x() - markers.at(screen3).p.x(), 2) +
-			pow(markers.at(screen1).p.y() - markers.at(screen3).p.y(), 2)
+				pow(markers.at(screen1).p.x() - markers.at(screen3).p.x(), 2) +
+				pow(markers.at(screen1).p.y() - markers.at(screen3).p.y(), 2)
 			)
-			) * 180 / M_PI;
-	}else{
+		) * 180 / M_PI;
+	}
+	else {
 		screenAlignmentY = 999;
 	}
 
-    // screen Z alignment check
-	if(isVisible(markers.at(screen1).p) && isVisible(markers.at(screen2).p) ){
+	// screen Z alignment check
+	if (isVisible(markers.at(screen1).p) && isVisible(markers.at(screen2).p)) {
 		screenAlignmentZ = asin(
 			abs(markers.at(screen1).p.z() - markers.at(screen2).p.z()) /
 			sqrt(
-			pow(markers.at(screen1).p.x() - markers.at(screen2).p.x(), 2) +
-			pow(markers.at(screen1).p.z() - markers.at(screen2).p.z(), 2)
+				pow(markers.at(screen1).p.x() - markers.at(screen2).p.x(), 2) +
+				pow(markers.at(screen1).p.z() - markers.at(screen2).p.z(), 2)
 			)
-			) * 180 / M_PI *
+		) * 180 / M_PI *
 			abs(markers.at(screen1).p.x() - markers.at(screen2).p.x()) /
 			(markers.at(screen1).p.x() - markers.at(screen2).p.x());
-	}else{
+	}
+	else {
 		screenAlignmentZ = 999;
 	}
 }
@@ -2336,111 +2350,114 @@ void calibrate_fingers()
 {
 	switch (currentInitStep)
 	{
-		case to_GetCalibrationPoints: // mark calibration reference points
-		
-			if (isVisible(markers[calibration_T].p) && isVisible(markers[calibration_I].p))
+	case to_GetCalibrationPoints: // mark calibration reference points
+
+		if (isVisible(markers[calibration_T].p) && isVisible(markers[calibration_I].p))
+		{
 			{
-				{
-					// calibrate for grasping along z axis (update the offset number)
-					thumbCalibrationPoint = markers.at(calibration_T).p + thumbCalibration_offset;// calibration point is the touching point
-					indexCalibrationPoint = markers.at(calibration_I).p + indexCalibration_offset;// calibration point is the touching point
-				}
+				// calibrate for grasping along z axis (update the offset number)
+				thumbCalibrationPoint = markers.at(calibration_T).p + thumbCalibration_offset;// calibration point is the touching point
+				indexCalibrationPoint = markers.at(calibration_I).p + indexCalibration_offset;// calibration point is the touching point
+			}
 
-				beepOk(1);
-				homePos = (thumbCalibrationPoint + indexCalibrationPoint)/2 + Vector3d(-10, 25, 0);
+			beepOk(1);
+			homePos = (thumbCalibrationPoint + indexCalibrationPoint) / 2 + Vector3d(-10, 25, 0);
 
-				currentInitStep = to_CalibrateFingerTips;
+			currentInitStep = to_CalibrateFingerTips;
+		}
+		else {
+			beepOk(3);
+		}
+
+		break;
+
+	case to_CalibrateFingerTips: // mark finger tips
+
+		if (allVisibleFingers)
+		{
+			indexCoords.init(indexCalibrationPoint, markers.at(ind1).p, markers.at(ind2).p, markers.at(ind3).p);
+			thumbCoords.init(thumbCalibrationPoint, markers.at(thu1).p, markers.at(thu2).p, markers.at(thu3).p);
+
+			beepOk(1);
+			if (fingerCalibration_TIPandJOINT) {
+				currentInitStep = to_CalibrateFingerJoints;
 			}
 			else {
-				beepOk(3);
-			}
-		
-			break;
-
-		case to_CalibrateFingerTips: // mark finger tips
-
-			if(allVisibleFingers)
-			{
-				indexCoords.init(indexCalibrationPoint, markers.at(ind1).p, markers.at(ind2).p, markers.at(ind3).p);
-				thumbCoords.init(thumbCalibrationPoint, markers.at(thu1).p, markers.at(thu2).p, markers.at(thu3).p);
-				
-				beepOk(1);
-				if(fingerCalibration_TIPandJOINT){
-					currentInitStep = to_CalibrateFingerJoints;
+				calibrationNum++;
+				if (Exp_Initialized) {
+					Fingers_Calibrated = true;
+					initTrial();
 				}
 				else {
-					calibrationNum++;
-					if(Exp_Initialized){
-						Fingers_Calibrated = true;	
-						initTrial();
-					}else{
-						currentInitStep = to_MoveApparatus; //to_MarkHomePos;
-						Fingers_Calibrated = true;	
-					}
+					currentInitStep = to_MoveApparatus; //to_MarkHomePos;
+					Fingers_Calibrated = true;
 				}
-			} 
-			else {
-				beepOk(3);
 			}
-		
-			break;
+		}
+		else {
+			beepOk(3);
+		}
 
-		case to_CalibrateFingerJoints: // mark finger joints
+		break;
 
-			if(allVisibleFingers)
-			{
-				indexJointCoords.init(indexCalibrationPoint, markers.at(ind1).p, markers.at(ind2).p, markers.at(ind3).p);
-				thumbJointCoords.init(thumbCalibrationPoint, markers.at(thu1).p, markers.at(thu2).p, markers.at(thu3).p);
+	case to_CalibrateFingerJoints: // mark finger joints
 
-				beepOk(1);
-				currentInitStep = to_MarkHomePos;
-				Fingers_Calibrated = true;
-			}
-			else {
-				beepOk(3);
-			}
-			break;
-	
+		if (allVisibleFingers)
+		{
+			indexJointCoords.init(indexCalibrationPoint, markers.at(ind1).p, markers.at(ind2).p, markers.at(ind3).p);
+			thumbJointCoords.init(thumbCalibrationPoint, markers.at(thu1).p, markers.at(thu2).p, markers.at(thu3).p);
+
+			beepOk(1);
+			currentInitStep = to_MarkHomePos;
+			Fingers_Calibrated = true;
+		}
+		else {
+			beepOk(3);
+		}
+		break;
+
 
 	}
 }
 
 
-void calibrate_system(){
-	switch (currentInitStep){ 
-		case to_MarkHomePos: 
-			// ask hand to rest at a designated place and press F to mark that as the home position
-			if(allVisibleFingers){
-				beepOk(1);
-				homePos = (ind + thm)/2;
-
-				currentInitStep = to_MoveApparatus;
-			}else{
-				beepOk(3);
-			}
-
-			break;
-
-		case to_MoveApparatus:
-
+void calibrate_system() {
+	switch (currentInitStep) {
+	case to_MarkHomePos:
+		// ask hand to rest at a designated place and press F to mark that as the home position
+		if (allVisibleFingers) {
 			beepOk(1);
-			initProjectionScreen(display_distance);
-			currentInitStep = to_confirmReady;
-			// push the physical object back to clear the grasping space
+			homePos = (ind + thm) / 2;
 
-			break;
+			currentInitStep = to_MoveApparatus;
+		}
+		else {
+			beepOk(3);
+		}
 
-		case to_confirmReady:
-			if (abs(mirrorAlignment - 45.0) < 0.2){
-				beepOk(1);
+		break;
 
-				Exp_Initialized = true;
-				initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
-				current_stage = stimulus_preview;
-			}else{
-				beepOk(8);
-			}
-			break;
+	case to_MoveApparatus:
+
+		beepOk(1);
+		initProjectionScreen(display_distance);
+		currentInitStep = to_confirmReady;
+		// push the physical object back to clear the grasping space
+
+		break;
+
+	case to_confirmReady:
+		if (abs(mirrorAlignment - 45.0) < 0.2) {
+			beepOk(1);
+
+			Exp_Initialized = true;
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+			current_stage = stimulus_preview;
+		}
+		else {
+			beepOk(8);
+		}
+		break;
 	}
 
 }
@@ -2453,10 +2470,10 @@ void online_fingers()
 
 	if (Fingers_Calibrated) {
 
-		if(allVisibleThumb){
-			thumbCoords.update(markers.at(thu1).p, markers.at(thu2).p, markers.at(thu3).p);		
+		if (allVisibleThumb) {
+			thumbCoords.update(markers.at(thu1).p, markers.at(thu2).p, markers.at(thu3).p);
 			thm = thumbCoords.getP1();
-			
+
 			thmToHome = homePos - thm;
 			thmToTarget = thmTarget - thm;
 
@@ -2465,7 +2482,8 @@ void online_fingers()
 			vel_dist_home = dist_thm_home - old_dist_thm_home;
 
 
-		}else{
+		}
+		else {
 
 			old_dist_thm_home = dist_thm_home;
 			dist_thm_home = 999;
@@ -2473,7 +2491,7 @@ void online_fingers()
 
 		}
 
-		if(allVisibleFingers){
+		if (allVisibleFingers) {
 			indexCoords.update(markers.at(ind1).p, markers.at(ind2).p, markers.at(ind3).p);
 			ind = indexCoords.getP1();
 
@@ -2481,13 +2499,14 @@ void online_fingers()
 			old_grip_aperture = grip_aperture;
 			grip_aperture = vec_ind_thm.norm();
 			vel_grip_change = grip_aperture - old_grip_aperture;
-		}else{
+		}
+		else {
 			grip_aperture = 999;
 			old_grip_aperture = grip_aperture;
 			vel_grip_change = 999;
 		}
 
-		handNearHome = (dist_thm_home < thresholdDist_near_home);	
+		handNearHome = (dist_thm_home < thresholdDist_near_home);
 		handSteady = (abs(vel_dist_home) < thresholdVelthm_steady);
 		gripSmall = (grip_aperture < thresholdGA_small);
 		gripSteady = (abs(vel_grip_change) < thresholdVelGA_steady);
@@ -2500,11 +2519,11 @@ void online_fingers()
 
 
 // this is run at compilation because it's titled f'main'
-int main(int argc, char*argv[])  
+int main(int argc, char* argv[])
 {
 	//functions from cncsvision packages
 	mathcommon::randomizeStart();
-		
+
 	// initializing glut (to use OpenGL)
 	glutInit(&argc, argv);
 
@@ -2513,16 +2532,16 @@ int main(int argc, char*argv[])
 	glutGameModeString("1024x768:32@85"); //resolution  
 	glutEnterGameMode();
 	glutFullScreen();
-	
+
 	// initializes optotrak and velmex motors
 
-	if(!testVisualStimuliOnly){
+	if (!testVisualStimuliOnly) {
 		initOptotrak();
 	}
 	initMotors();
-	
+
 	initRendering(); // initializes the openGL parameters needed for creating the stimuli
-	
+
 	initStreams(); // streams as in files for writing data
 
 	initVariables();

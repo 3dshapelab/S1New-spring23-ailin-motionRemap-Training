@@ -90,7 +90,7 @@ int calibration_T = 1, calibration_I = 2;
 
 // Position variables for keeping track of finger movementm
 Vector3d ind, indJoint, thm, thmJoint;
-Vector3d homePos(0, 0, 0), thmTarget(0,0,0), visTarget(0,0,0), centeredObjEdge(0,0,0);
+Vector3d homePos(0, 0, 0), thmTarget(0, 0, 0), visTarget(0, 0, 0), centeredObjEdge(0, 0, 0);
 Vector3d vec_ind_thm, thmToHome, thmToTarget;
 Vector3d indexCalibrationPoint(0, 0, 0), thumbCalibrationPoint(0, 0, 0), CalibrationPoint(0, 0, 0);
 Vector3d indexCalibration_offset(-8, 0, -5.4), thumbCalibration_offset(-8, 0, 5.4);
@@ -190,7 +190,7 @@ double l_curve_text, l_curve_disp;
 // training
 double depth_training_min = 20; // set in the subject file
 int depth_training_range = 24; // set in the subject file
-double depth_inc = 2; 
+double depth_inc = 2;
 // jitter in distance
 double jitter_z = 0;
 double display_distance_jittered = display_distance + jitter_z;
@@ -294,10 +294,10 @@ double cycle_time = 12000;
 double motionFlowTime = cycle_time;
 
 /********** ONLINE CONTROL ***************/
-enum Stages {exp_initializing, stimulus_preview, prep_trial, trial_fixate, trial_viewStatic, trial_MSE_first, trial_MSE_reset_first, trial_viewMtFlow, trial_MSE_second, trial_MSE_reset_second, break_time, exp_completed};
+enum Stages { exp_initializing, stimulus_preview, prep_trial, trial_fixate, trial_viewStatic, trial_MSE_first, trial_MSE_reset_first, trial_viewMtFlow, trial_MSE_second, trial_MSE_reset_second, break_time, exp_completed };
 Stages current_stage = exp_initializing; // if just want to look at the stimuli, use the constant present stage
 
-enum expInitSteps{to_GetCalibrationPoints, to_CalibrateFingerTips, to_CalibrateFingerJoints,  to_MarkHomePos, to_MoveApparatus, to_confirmReady};
+enum expInitSteps { to_GetCalibrationPoints, to_CalibrateFingerTips, to_CalibrateFingerJoints, to_MarkHomePos, to_MoveApparatus, to_confirmReady };
 expInitSteps currentInitStep = to_GetCalibrationPoints;
 int calibrationNum = 0;
 
@@ -313,7 +313,7 @@ bool stimulus_built = false;
 bool roll_rock = false;
 bool task_guide_info = true;
 
-enum errorStates{no_error, training_exceeded};
+enum errorStates { no_error, training_exceeded };
 errorStates current_error_state = no_error;
 
 // Timer variable, set for each trial 

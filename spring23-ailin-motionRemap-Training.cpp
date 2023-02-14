@@ -337,7 +337,7 @@ void drawGLScene()
 	drawStimulus();
 	//drawPanel_Leye(true, display_distance_jittered, depth_disp);
 	drawInfo();
-	drawTaskGuide();
+	//drawTaskGuide();
 
 
 	// Draw right eye view
@@ -350,7 +350,7 @@ void drawGLScene()
 	drawStimulus();
 	//drawPanel_Reye(true, display_distance_jittered, depth_disp);
 	drawInfo();
-	drawTaskGuide();
+	//drawTaskGuide();
 
 
 	glutSwapBuffers();
@@ -601,13 +601,14 @@ void drawInfo()
 			text.draw("# Name: " + subjectName);
 			text.draw("# IOD: " + stringify<double>(interoculardistance));
 			glColor3fv(glRed);
-			if (reinforce_texture_disparity) {
-				text.draw("----------------------------- P ----------");
+			if(!trainingCueIsRandom){
+				if (reinforce_texture_disparity) {
+					text.draw("----------------------------- P ----------");
+				}
+				else {
+					text.draw("--------- E ------------------------------");
+				}
 			}
-			else {
-				text.draw("--------- E ------------------------------");
-			}
-
 			//text.draw("# depth texture: " + stringify<double>(depth_text));
 			//text.draw("# depth stereo: " + stringify<double>(depth_disp));
 			//text.draw("                           ");
@@ -636,7 +637,8 @@ void drawInfo()
 			text.draw("# depth texture: " + stringify<double>(depth_text));
 			text.draw("# depth stereo: " + stringify<double>(depth_disp));
 			text.draw("# elasped time: " + stringify<double>(ElapsedTime));
-			text.draw("# updateEveryMs: " + stringify<double>(updateEveryMs));
+			text.draw("# thm to home: " + stringify<double>(dist_thm_home));
+			text.draw("# GA: " + stringify<double>(grip_aperture));
 
 			break;
 
@@ -718,7 +720,6 @@ void onlineTrial() {
 	case trial_MSE_reset_first:
 		// MSE registered, close fingers to continue
 		if (gripSmall && gripSteady) {
-			beepOk(22);
 			attemped_MSE = false;
 			initMotionFlow();
 			current_stage = trial_viewMtFlow;
@@ -729,8 +730,10 @@ void onlineTrial() {
 	case trial_viewMtFlow:
 		// monitor the time and update vertices
 		ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
-		if((move_cnt * speed_moderator) / (4.0 * nr_mvpts_max) > 3){
+		if((move_cnt * speed_moderator) / ( 4.0 * nr_mvpts_max) > mv_num){
 		//if ((ElapsedTime - timestamp_mtFlow) > motionFlowTime) {
+			motionFlowTime = ElapsedTime - timestamp_mtFlow;
+			beepOk(21);
 			current_stage = trial_MSE_second;
 		}
 		else {
@@ -754,7 +757,7 @@ void onlineTrial() {
 				holdCount_home++;
 			}
 
-			if (holdCount_home > 30) {
+			if (holdCount_home > 20) {
 				advanceTrial();
 			}
 		}
@@ -792,7 +795,8 @@ void advanceTrial()
 		Tex_dot_separation_ratio << "\t" <<
 		speed_moderator << "\t" <<
 		rock_movement_divider << "\t" <<
-		motionFlowTime
+		motionFlowTime << "\t" <<
+		trainingCueIsRandom
 		<< endl;
 
 	//subjName\tIOD\tblockN\ttrialN\tdisplayDistance\tvisualAngle\tclyHorizontal\ttexnum\ttextNomralizer\ttestDepth\tprobeStart\tprobeDepth\ttime
@@ -907,6 +911,8 @@ void handleKeypress(unsigned char key, int x, int y)
 		break;
 
 
+
+
 	case 'f':
 	case 'F':
 	{
@@ -952,7 +958,7 @@ void handleKeypress(unsigned char key, int x, int y)
 
 			attemped_MSE = true;
 
-			if ((grip_aperture < 200) && handNearHome && gripSteady) {
+			if ((grip_aperture < 200) && gripSteady) {
 
 				beepOk(4);
 				grip_aperture_MSE_first = grip_aperture;
@@ -973,7 +979,7 @@ void handleKeypress(unsigned char key, int x, int y)
 			else {
 				attemped_MSE = true;
 
-				if ((grip_aperture < 200) && handNearHome && gripSteady) {
+				if ((grip_aperture < 200) && gripSteady) {
 
 					beepOk(4);
 					grip_aperture_MSE_second = grip_aperture;
@@ -1030,6 +1036,10 @@ void handleKeypress(unsigned char key, int x, int y)
 
 			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
 
+		}
+		else if(current_stage == trial_MSE_second){
+			initMotionFlow();
+			current_stage = trial_viewMtFlow;
 		}
 
 		break;
@@ -1210,6 +1220,7 @@ void generateTexDots(float TM_X, float TM_Y, float dotDensity, float dotRadius, 
 
 		num_runs++;
 		if (num_runs > 10000) {
+			cout << depth_text << depth_disp << endl;
 			cerr << "can't generate texture" << endl;
 			exit(0);
 		}
@@ -1902,12 +1913,12 @@ void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeD
 
 void buildSurface_incongruent(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double displayDist, double contourPanelSeparation) {
 
-
 	// part 1: generate TexDots and project to Disp Surface
 	CurveYLMap ylMap_Text;
 	scanCurve(shapeHeight, textDepth, ylMap_Text);
 	l_curve_text = ylMap_Text.l_vec.back();
 	float l_text = l_curve_text;
+
 	TextureDotsData Tex_Dots_text, Tex_Dots_disp;
 	generateTexDots(shapeWidth, l_text, Tex_dot_density, Tex_dot_radius, Tex_dot_separation_ratio, Tex_Dots_text);
 
@@ -2134,12 +2145,31 @@ void initStreams()
 	display_distance = str2num<double>(parameters.find("dispDepth"));
 
 	int targetCueID = str2num<int>(parameters.find("targetCue"));
-	if (targetCueID > 0) {
+
+	if (targetCueID == 33) {
+		trainingCueIsRandom = true;
+		targetCueID = rand() % 2;
+		cout << "draw: " << targetCueID << endl;
+	}
+
+
+	if (targetCueID == 0) {
+		reinforce_texture_disparity = true;
+		mv_num = 3;
+		speed_moderator = speed_moderator_Text;
+	}
+	else if (targetCueID == 1) {
 		reinforce_texture_disparity = false;
+		mv_num = 2;
+		speed_moderator = speed_moderator_Disp;
 	}
 	else {
-		reinforce_texture_disparity = true;
+		string error_on_file_io = string("invalid targetCueID. has to be 0 1 or 33");
+		cerr << error_on_file_io << endl;
+		shutdown();
 	}
+
+	std::string st_cue = std::to_string(targetCueID);
 
 	// Subject name
 	subjectName = parameters.find("SubjectName");
@@ -2153,9 +2183,9 @@ void initStreams()
 
 	if (sessionNum == 0) {
 		session_full_vs_extra = false;
-		responseFileName = dirName + "/" + subjectName + "_training_init.txt";
+		responseFileName = dirName + "/" + subjectName + "_training_init_cue" + st_cue +".txt";
 		// Principal streams files
-		if (util::fileExists(dirName + "/" + subjectName + "_training_init.txt") && subjectName != "junk")
+		if ( (util::fileExists(dirName + "/" + subjectName + "_training_init_cue0.txt") || util::fileExists(dirName + "/" + subjectName + "_training_init_cue1.txt")) && subjectName != "junk")
 		{
 			string error_on_file_io = string("file already exists");
 			cerr << error_on_file_io << endl;
@@ -2213,6 +2243,8 @@ void initVariables()
 
 void initBlock()
 {
+
+
 	// initialize the trial matrix
 	if (session_full_vs_extra) {
 		trial.init(parameters);
@@ -2238,11 +2270,9 @@ void initMotionFlow() {
 	move_cnt = 0;
 	if (reinforce_texture_disparity) {
 		nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
-		speed_moderator = speed_moderator_Text;
 	}
 	else {
 		nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
-		speed_moderator = speed_moderator_Disp;
 	}
 	updateEveryMs = cycle_time / (nr_mvpts_max);
 
@@ -2370,7 +2400,7 @@ void calibrate_fingers()
 			}
 
 			beepOk(1);
-			homePos = (thumbCalibrationPoint + indexCalibrationPoint) / 2 + Vector3d(-10, 25, 0);
+			homePos = (thumbCalibrationPoint + indexCalibrationPoint) / 2 + Vector3d(-15, 25, 0);
 
 			currentInitStep = to_CalibrateFingerTips;
 		}

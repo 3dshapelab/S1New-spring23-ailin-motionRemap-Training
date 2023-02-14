@@ -147,7 +147,7 @@ string parametersFileName_extra = experiment_directory + "parameters_spring23-ai
 
 // response file
 ofstream responseFile;
-string responseFile_headers = "subjName\tIOD\tblockN\ttrialN\tDepth\tDepthDelta\tDepth_text\tDepth_disp\treinforceTexture\tdisplayDistance\tMSE1\tMSE2\tRT_MSE1\tRT_MSE2\tcalibNum\tvisualAngle\tshapeHeight\tshapeWidth\tTexDotsDensity\tTexDotRadius\tTexDotSepRatio\tmtFlSpeedMod\trockMod\tmtFlTime";
+string responseFile_headers = "subjName\tIOD\tblockN\ttrialN\tDepth\tDepthDelta\tDepth_text\tDepth_disp\treinforceTexture\tdisplayDistance\tMSE1\tMSE2\tRT_MSE1\tRT_MSE2\tcalibNum\tvisualAngle\tshapeHeight\tshapeWidth\tTexDotsDensity\tTexDotRadius\tTexDotSepRatio\tmtFlSpeedMod\trockMod\tmtFlTime\tRandomTraining";
 
 string subjectName;
 
@@ -273,7 +273,7 @@ int total_ind = 0;
 /********* TEXTURE *********/
 float Tex_dot_density = 0.011; //0.02;
 float Tex_dot_radius = 2.4; // 2.2;
-float Tex_dot_separation_ratio = 1.3;
+float Tex_dot_separation_ratio = 1.4;
 
 //blur edge
 double drop_off_rate = 0.56;
@@ -289,11 +289,12 @@ int move_cnt = 0;
 int nr_mvpts_max = 20;
 double speed_moderator = 7;
 double speed_moderator_Text = 8.5;
-double speed_moderator_Disp = 4;
+double speed_moderator_Disp = 5.5;
 int rock_movement_divider = 2;
 double updateEveryMs = 30;
 double cycle_time = 1200;
 double motionFlowTime = cycle_time;
+double mv_num = 3;
 
 /********** ONLINE CONTROL ***************/
 enum Stages { exp_initializing, stimulus_preview, prep_trial, trial_fixate, trial_viewStatic, trial_MSE_first, trial_MSE_reset_first, trial_viewMtFlow, trial_MSE_second, trial_MSE_reset_second, break_time, exp_completed };
@@ -314,6 +315,7 @@ bool screenBack = false; //has the screen been placed at projection distance
 bool stimulus_built = false;
 bool roll_rock = false;
 bool task_guide_info = true;
+bool trainingCueIsRandom = false;
 
 enum errorStates { no_error, training_exceeded };
 errorStates current_error_state = no_error;
@@ -329,7 +331,7 @@ double fixateTime = 600;
 
 /*********** for DEBUGGING **********/
 float time_var = 200;
-bool testVisualStimuliOnly = true;
+bool testVisualStimuliOnly = false;
 /*************************** FUNCTIONS ***********************************/
 void initOptotrak();
 void initMotors();

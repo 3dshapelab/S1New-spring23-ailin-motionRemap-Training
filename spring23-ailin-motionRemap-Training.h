@@ -288,9 +288,11 @@ float lightDir_z = 0.6;
 int move_cnt = 0;
 int nr_mvpts_max = 20;
 double speed_moderator = 7;
+double speed_moderator_Text = 8.5;
+double speed_moderator_Disp = 4;
 int rock_movement_divider = 2;
 double updateEveryMs = 30;
-double cycle_time = 12000;
+double cycle_time = 1200;
 double motionFlowTime = cycle_time;
 
 /********** ONLINE CONTROL ***************/
@@ -351,7 +353,7 @@ void advanceTrial();
 
 void drawStimulus();
 void drawSurface(double displayDist, double dispDepth, const VerticesData& vertices_data, const ContourData& contours_vert);
-void drawContours(const ContourData& contours_vert);
+void drawContours( const ContourData& contours_vert);
 void drawProgressBar();
 void drawFixation(double displayDist);
 

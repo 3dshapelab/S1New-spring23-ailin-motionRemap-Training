@@ -179,17 +179,18 @@ void drawSurface(double displayDist, double dispDepth, const VerticesData& verti
 	glDisableClientState(GL_COLOR_ARRAY);
 
 	glDisable(GL_LIGHTING);
-	drawContours(contours_vert);
 
+	drawContours(contours_vert);
 	glPopMatrix();
 
 }
 
-void drawContours(const ContourData& contours_vert) {
+void drawContours(const ContourData& contours_vert ) {
 
 	int n;
 	float panel_width = 40;
 	float panel_height_extra = 20;
+
 
 	glTranslated(0, 0, 1);
 	n = int(contours_vert.vert_Lcontour.size());
@@ -232,7 +233,7 @@ void drawContours(const ContourData& contours_vert) {
 
 		glEnd();
 	}
-
+	
 }
 
 void drawFixation(double displayDist) {
@@ -308,10 +309,12 @@ void drawStimulus()
 	case trial_MSE_second:
 	case trial_MSE_reset_second:
 		drawSurface(display_distance_jittered, depth_disp, my_verts_static, my_contour_data);
+
 		break;
 
 	case trial_viewMtFlow:
 		drawSurface(display_distance_jittered, depth_disp, my_verts_moving, my_contour_data);
+
 		break;
 
 	case break_time:
@@ -633,7 +636,7 @@ void drawInfo()
 			text.draw("# depth texture: " + stringify<double>(depth_text));
 			text.draw("# depth stereo: " + stringify<double>(depth_disp));
 			text.draw("# elasped time: " + stringify<double>(ElapsedTime));
-			text.draw("# timestamp_mtFlow: " + stringify<double>(timestamp_mtFlow));
+			text.draw("# updateEveryMs: " + stringify<double>(updateEveryMs));
 
 			break;
 
@@ -694,7 +697,7 @@ void onlineTrial() {
 
 		if (testVisualStimuliOnly) {
 
-			if (ElapsedTime > 4 * fixateTime) {
+			if (ElapsedTime > 2* fixateTime) {
 				beepOk(21);
 				grip_aperture_MSE_first = 40;
 				initMotionFlow();
@@ -726,8 +729,8 @@ void onlineTrial() {
 	case trial_viewMtFlow:
 		// monitor the time and update vertices
 		ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
-
-		if ((ElapsedTime - timestamp_mtFlow) > motionFlowTime) {
+		if((move_cnt * speed_moderator) / (4.0 * nr_mvpts_max) > 3){
+		//if ((ElapsedTime - timestamp_mtFlow) > motionFlowTime) {
 			current_stage = trial_MSE_second;
 		}
 		else {
@@ -982,14 +985,20 @@ void handleKeypress(unsigned char key, int x, int y)
 			break;
 
 		case break_time:
-			if (abs(mirrorAlignment - 45.0) < 0.2) {
+			if (testVisualStimuliOnly) {
 				beepOk(5);
-				visibleInfo = false;
 				trialNum++;
 				initTrial();
-			}
-			else {
-				beepOk(20);
+			}else{
+				if (abs(mirrorAlignment - 45.0) < 0.2) {
+					beepOk(5);
+					visibleInfo = false;
+					trialNum++;
+					initTrial();
+				}
+				else {
+					beepOk(20);
+				}
 			}
 			break;
 		}
@@ -1920,7 +1929,7 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 	CurvePtsData y_curve_data_text_m, y_curve_data_disp_m;
 	if (reinforce_texture_disparity) {
 		nr_points_height = buildCurve_byDelL(ylMap_Text, y_curve_data_text_m);
-		projectCurve(ylMap_Text, -(displayDist - dispDepth), y_curve_data_text_m, y_curve_data_disp_m);
+		projectCurve(ylMap_Disp, -(displayDist - dispDepth), y_curve_data_text_m, y_curve_data_disp_m);
 		buildSurfaceVertices_TexDotsOnText(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, -(displayDist - dispDepth), Tex_Dots_text, my_verts_moving);
 	}
 	else {
@@ -2229,14 +2238,14 @@ void initMotionFlow() {
 	move_cnt = 0;
 	if (reinforce_texture_disparity) {
 		nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
-		speed_moderator = 7.5;
+		speed_moderator = speed_moderator_Text;
 	}
 	else {
 		nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
-		speed_moderator = 5;
+		speed_moderator = speed_moderator_Disp;
 	}
-	updateEveryMs = cycle_time / (8 * nr_mvpts_max);
-	motionFlowTime = 0.25 * cycle_time;
+	updateEveryMs = cycle_time / (nr_mvpts_max);
+
 	last_time = trial_timer.getElapsedTimeInMilliSec();
 	timestamp_mtFlow = trial_timer.getElapsedTimeInMilliSec();
 
@@ -2275,7 +2284,7 @@ void initTrial()
 	}
 
 
-	jitter_z = 0;// ((rand() % 41) - 20) / 2.0; // from -10 to 10
+	jitter_z = ((rand() % 41) - 20) / 2.0; // from -10 to 10
 	display_distance_jittered = display_distance + jitter_z;
 
 	initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance_jittered, stimulus_visiblewidth);

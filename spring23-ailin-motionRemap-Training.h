@@ -183,14 +183,14 @@ double ratio_visiblewidth_height = 1.2;//1.1;
 // depths of visual stimuli
 double depth_mean = 40;
 double depth_delta = 0;
-double depth_text = 40;
+double depth_text = 20;
 double depth_disp = 40;
 double l_curve_text, l_curve_disp;
 
 // training
 double depth_training_min = 20; // set in the subject file
 int depth_training_range = 24; // set in the subject file
-double depth_inc = 2;
+double depth_inc = 10;
 // jitter in distance
 double jitter_z = 0;
 double display_distance_jittered = display_distance + jitter_z;
@@ -271,9 +271,13 @@ int nr_points_height = nr_points_height_default;
 int total_ind = 0;
 
 /********* TEXTURE *********/
-float Tex_dot_density = 0.011; //0.02;
+//float Tex_dot_density = 0.011; //0.02;
+//float Tex_dot_radius = 2.4; // 2.2;
+//float Tex_dot_separation_ratio = 1.4;
+
+float Tex_dot_density = 0.0135; //0.02;
 float Tex_dot_radius = 2.4; // 2.2;
-float Tex_dot_separation_ratio = 1.4;
+float Tex_dot_separation_ratio = 1.42;
 
 //blur edge
 double drop_off_rate = 0.56;
@@ -282,13 +286,13 @@ double R_blur_fac = 2 / (1 + drop_off_rate);//1.28;
 /********** LIGHTING ***************/
 float max_intensity = 0.8;
 float amb_intensity = 0.3;
-float lightDir_z = 0.6;
+float lightDir_z = 0.4;
 
 /********** MOVEMENT ***************/
 int move_cnt = 0;
 int nr_mvpts_max = 20;
 double speed_moderator = 7;
-double speed_moderator_Text = 8.5;
+double speed_moderator_Text = 7.5;
 double speed_moderator_Disp = 5.5;
 int rock_movement_divider = 2;
 double updateEveryMs = 30;
@@ -297,7 +301,7 @@ double motionFlowTime = cycle_time;
 double mv_num = 3;
 
 /********** ONLINE CONTROL ***************/
-enum Stages { exp_initializing, stimulus_preview, prep_trial, trial_fixate, trial_viewStatic, trial_MSE_first, trial_MSE_reset_first, trial_viewMtFlow, trial_MSE_second, trial_MSE_reset_second, break_time, exp_completed };
+enum Stages { exp_initializing, stimulus_preview, stimulus_previewMotion, prep_trial, trial_fixate, trial_viewStatic, trial_MSE_first, trial_MSE_reset_first, trial_viewMtFlow, trial_MSE_second, trial_MSE_reset_second, break_time, exp_completed };
 Stages current_stage = exp_initializing; // if just want to look at the stimuli, use the constant present stage
 
 enum expInitSteps { to_GetCalibrationPoints, to_CalibrateFingerTips, to_CalibrateFingerJoints, to_MarkHomePos, to_MoveApparatus, to_confirmReady };
@@ -331,7 +335,7 @@ double fixateTime = 600;
 
 /*********** for DEBUGGING **********/
 float time_var = 200;
-bool testVisualStimuliOnly = false;
+bool testVisualStimuliOnly = true;
 /*************************** FUNCTIONS ***********************************/
 void initOptotrak();
 void initMotors();

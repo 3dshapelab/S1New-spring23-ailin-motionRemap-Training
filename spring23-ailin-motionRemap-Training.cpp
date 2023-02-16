@@ -313,6 +313,7 @@ void drawStimulus()
 		break;
 
 	case trial_viewMtFlow:
+
 		drawSurface(display_distance_jittered, depth_disp, my_verts_moving, my_contour_data);
 
 		break;
@@ -321,7 +322,9 @@ void drawStimulus()
 		drawProgressBar();
 		break;
 
-
+	case stimulus_previewMotion:
+		drawSurface(display_distance, depth_disp, my_verts_moving, my_contour_data);
+		break;
 	}
 }
 
@@ -332,10 +335,10 @@ void drawGLScene()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	cam.setEye(eyeRight);
+	//cam.setEye(eyeMiddle);
 
 
 	drawStimulus();
-	//drawPanel_Leye(true, display_distance_jittered, depth_disp);
 	drawInfo();
 	//drawTaskGuide();
 
@@ -345,10 +348,10 @@ void drawGLScene()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	cam.setEye(eyeLeft);
+	//cam.setEye(eyeMiddle);
 
 
 	drawStimulus();
-	//drawPanel_Reye(true, display_distance_jittered, depth_disp);
 	drawInfo();
 	//drawTaskGuide();
 
@@ -596,6 +599,7 @@ void drawInfo()
 			break;
 
 		case stimulus_preview:
+		case stimulus_previewMotion:
 			glColor3fv(glWhite);
 			text.draw("Welcome! press + to start training");
 			text.draw("# Name: " + subjectName);
@@ -609,6 +613,11 @@ void drawInfo()
 					text.draw("--------- E ------------------------------");
 				}
 			}
+			text.draw("# move cnt: " + stringify<int>(move_cnt));
+			text.draw("#reinforce_texture_disparity: " + stringify<bool>(reinforce_texture_disparity));
+			text.draw("# depth texture: " + stringify<double>(depth_text));
+			text.draw("# depth stereo: " + stringify<double>(depth_disp));
+			text.draw("# elasped time: " + stringify<double>(ElapsedTime));
 			//text.draw("# depth texture: " + stringify<double>(depth_text));
 			//text.draw("# depth stereo: " + stringify<double>(depth_disp));
 			//text.draw("                           ");
@@ -630,6 +639,7 @@ void drawInfo()
 		case trial_MSE_second:
 		case trial_MSE_reset_second:
 
+
 			text.draw(" ");
 			text.draw("# current stage: " + stringify<int>(current_stage));
 			text.draw("# trial Num: " + stringify<int>(trialNum));
@@ -639,6 +649,7 @@ void drawInfo()
 			text.draw("# elasped time: " + stringify<double>(ElapsedTime));
 			text.draw("# thm to home: " + stringify<double>(dist_thm_home));
 			text.draw("# GA: " + stringify<double>(grip_aperture));
+
 
 			break;
 
@@ -686,6 +697,22 @@ void onlineTrial() {
 	//stimulus_preview, prep_trial, trial_fixate_first, trial_present_first, trial_fixate_second, trial_present_second, trial_respond,
 
 	switch (current_stage) {
+
+	case stimulus_previewMotion:
+		// monitor the time and update vertices
+		ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
+		if ((move_cnt * speed_moderator) / (4.0 * nr_mvpts_max) > 2 * mv_num) {
+			//if ((ElapsedTime - timestamp_mtFlow) > motionFlowTime) {		
+			current_stage = stimulus_preview;
+		}
+		else {
+			if (ElapsedTime - last_time > updateEveryMs) {
+				last_time = ElapsedTime;
+				move_cnt++;
+				updateVerticesData(move_cnt);
+			}
+		}
+		break;
 
 	case trial_fixate:
 
@@ -867,6 +894,21 @@ void handleKeypress(unsigned char key, int x, int y)
 
 		break;
 
+
+	case 'b':{
+		initMotionFlow();
+		trial_timer.reset();
+		trial_timer.start();
+		last_time = 0;
+		ElapsedTime = 0;
+		current_stage = stimulus_previewMotion;
+		}
+		break;
+
+	case '-':
+		reinforce_texture_disparity = !reinforce_texture_disparity;
+		initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+		break;
 	case 'a':
 		grip_aperture_MSE_first = 999;
 		advanceTrial();
@@ -947,11 +989,19 @@ void handleKeypress(unsigned char key, int x, int y)
 	case '+':
 		switch (current_stage) {
 		case stimulus_preview:
-
+			/*
 			beepOk(5);
 			visibleInfo = false;
 			initBlock();
 			initTrial();
+			*/
+			initMotionFlow();
+			trial_timer.reset();
+			trial_timer.start();
+			last_time = 0;
+			ElapsedTime = 0;
+			current_stage = stimulus_previewMotion;
+
 			break;
 
 		case trial_MSE_first:
@@ -1960,13 +2010,13 @@ void buildContour(double ContourWidth, const CurvePtsData& dispYCurve, const Cur
 
 		float x_t_L = -ContourWidth / 2;
 		float x_t_R = ContourWidth / 2;
-		float y_t = textYCurve.y_vec[i_v];
+
 		float z_t = textYCurve.z_vec[i_v];
 
 		float y_d = dispYCurve.y_vec[i_v];
 		float z_d = dispYCurve.z_vec[i_v];
 
-		float w = (distShapeToEye - z_d) / (distShapeToEye - z_t);
+		float w = (distShapeToEye - z_d) / (distShapeToEye - (z_t + z_d) / 2.0);
 		float x_v_L = w * x_t_L;
 		float x_v_R = w * x_t_R;
 
@@ -2029,7 +2079,7 @@ void initSurface(double shapeWidth, double shapeHeight, double dispDepth, double
 		buildSurface_incongruent(shapeWidth, shapeHeight, dispDepth, textDepth, displayDist, contourPanelSeparation);
 	}
 
-	amb_intensity = adjustAmbient(depth_text, max_intensity, 1.0, 0.6, 20, 40);
+	amb_intensity = adjustAmbient(depth_text, max_intensity, 0.8, 0.5, 20, 40);
 	stimulus_built = true;
 }
 
@@ -2269,14 +2319,17 @@ void initMotionFlow() {
 
 	move_cnt = 0;
 	if (reinforce_texture_disparity) {
-		nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
+		nr_mvpts_max = round(  (nr_points_height - 1) / 4 / rock_movement_divider);
+		speed_moderator = speed_moderator_Text;
 	}
 	else {
 		nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
+		speed_moderator = speed_moderator_Disp;
 	}
 	updateEveryMs = cycle_time / (nr_mvpts_max);
 
 	last_time = trial_timer.getElapsedTimeInMilliSec();
+
 	timestamp_mtFlow = trial_timer.getElapsedTimeInMilliSec();
 
 }

@@ -117,7 +117,7 @@ bool handSteady = false;
 double old_grip_aperture, grip_aperture = 0;
 double vel_grip_change;
 // threshold
-double thresholdGA_small = 10, thresholdVelGA_steady = 1.2;
+double thresholdGA_small = 12, thresholdVelGA_steady = 1.2;
 bool gripSmall = false;
 bool gripSteady = false;
 
@@ -195,7 +195,7 @@ double depth_inc = 10;
 double jitter_z = 0;
 double display_distance_jittered = display_distance + jitter_z;
 double visualTarget_X = 0, visualTarget_Y = 0;
-
+double distance_shape = -display_distance_jittered;
 
 /********** STIMULUS VERTICES ***************/
 struct CurveYLMap {
@@ -275,18 +275,18 @@ int total_ind = 0;
 //float Tex_dot_radius = 2.4; // 2.2;
 //float Tex_dot_separation_ratio = 1.4;
 
-float Tex_dot_density = 0.0135; //0.02;
-float Tex_dot_radius = 2.4; // 2.2;
-float Tex_dot_separation_ratio = 1.42;
+float Tex_dot_density = 0.015; //0.02;
+float Tex_dot_radius = 2.3; // 2.2;
+float Tex_dot_separation_ratio = 1.4;
 
 //blur edge
-double drop_off_rate = 0.56;
+double drop_off_rate = 0.42;
 double R_blur_fac = 2 / (1 + drop_off_rate);//1.28;
 
 /********** LIGHTING ***************/
 float max_intensity = 0.8;
-float amb_intensity = 0.3;
-float lightDir_z = 0.4;
+float amb_intensity = 0.4;
+float lightDir_z = 0.5;
 
 /********** MOVEMENT ***************/
 int move_cnt = 0;
@@ -328,6 +328,7 @@ errorStates current_error_state = no_error;
 Timer trial_timer;
 double ElapsedTime;
 double last_time = 0;
+
 double timestamp_MSEstart1, timestamp_MSEend1;
 double timestamp_MSEstart2, timestamp_MSEend2;
 double timestamp_mtFlow;
@@ -335,7 +336,7 @@ double fixateTime = 600;
 
 /*********** for DEBUGGING **********/
 float time_var = 200;
-bool testVisualStimuliOnly = true;
+bool testVisualStimuliOnly = false;
 /*************************** FUNCTIONS ***********************************/
 void initOptotrak();
 void initMotors();
@@ -351,20 +352,20 @@ void shutdown();
 void beepOk(int tone);
 
 void initMotionFlow();
-void initSurface(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double displayDist, double contourPanelSeparation);
+void initSurface(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double distShapeToEye, double contourPanelSeparation);
 void initBlock();
 void initTrial();
 void onlineTrial();
 void advanceTrial();
 
 void drawStimulus();
-void drawSurface(double displayDist, double dispDepth, const VerticesData& vertices_data, const ContourData& contours_vert);
+void drawSurface(double distShapeToEye, const VerticesData& vertices_data, const ContourData& contours_vert);
 void drawContours( const ContourData& contours_vert);
 void drawProgressBar();
 void drawFixation(double displayDist);
 
-void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeDepth, double displayDist, double contourPanelSeparation);
-void buildSurface_incongruent(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double displayDist, double contourPanelSeparation);
+void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeDepth, double distShapeToEye, double contourPanelSeparation);
+void buildSurface_incongruent(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double distShapeToEye, double contourPanelSeparation);
 void buildSurfaceVertices_congruent(double shapeWidth, const CurvePtsData& textYCurve, TextureDotsData& TexDotsOnText, VerticesData& vertices_data);
 void buildSurfaceVertices_TexDotsOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnDisp, VerticesData& vertices_data);
 void buildSurfaceVertices_TexDotsOnText(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnText, VerticesData& vertices_data);
@@ -385,7 +386,6 @@ double getTg(double shapeHeight, double shapeDepth, double Y);
 double mapLtoY(const CurveYLMap& inputYLMap, double TargetL, int i_int = i_map_mid);
 double mapYtoL(const CurveYLMap& inputYLMap, double input_y);
 double SolveForZ_projected(double theHeight, double newDepth, double l, double y0, double z0);
-float adjustAmbient(double textDepth, float maxInt, double rateAmbvsDiff_flat, double rateAmbvsDiff_deep, double Depth_flat, double Depth_deep);
 
 void drawInfo();
 void drawInfo_alignment(GLText curText);
@@ -398,6 +398,7 @@ void calibrate_fingers();
 void draw_thumb_dots();
 void online_fingers();
 void drawMarker(int Marker_ID);
+void drawFingersOcclusion();
 
 
 

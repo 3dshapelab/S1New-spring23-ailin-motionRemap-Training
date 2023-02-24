@@ -86,13 +86,6 @@ Vector3d projectPoint(double shapeHeight, double newDepth, double distShapeToEye
 	return ToPoint;
 }
 
-float adjustAmbient(double textDepth, float maxInt, double rateAmbvsDiff_flat, double rateAmbvsDiff_deep, double Depth_flat, double Depth_deep) {
-
-	double rateAmbvsDiff_new = rateAmbvsDiff_flat + (rateAmbvsDiff_deep - rateAmbvsDiff_flat) * (textDepth - Depth_flat) / (Depth_deep - Depth_flat);
-	float newAmbient = maxInt * (rateAmbvsDiff_new / (rateAmbvsDiff_new + 1));
-
-	return newAmbient;
-}
 
 double mapLtoY(const CurveYLMap& inputYLMap, double TargetL, int i_int) {
 
@@ -137,7 +130,7 @@ double mapLtoY(const CurveYLMap& inputYLMap, double TargetL, int i_int) {
 }
 
 
-void drawSurface(double displayDist, double dispDepth, const VerticesData& vertices_data, const ContourData& contours_vert) {
+void drawSurface(double distShapeToEye, const VerticesData& vertices_data, const ContourData& contours_vert) {
 
 	//setting the light
 	glShadeModel(GL_SMOOTH); // enable Smooth Shading
@@ -161,7 +154,7 @@ void drawSurface(double displayDist, double dispDepth, const VerticesData& verti
 
 	glPushMatrix();
 	glLoadIdentity();
-	glTranslated(0, 0, displayDist - dispDepth);
+	glTranslated(0, 0, -distShapeToEye);
 	// activate and specify pointer to vertex array
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
@@ -236,6 +229,47 @@ void drawContours(const ContourData& contours_vert ) {
 	
 }
 
+
+void drawFingersOcclusion() {
+
+
+	if (!allVisibleIndex) {
+		glColor3f(0.0f, 0.6f, 0.0f);
+		glPushMatrix();
+		glLoadIdentity();
+		glTranslated(0, 60, display_distance - 3);
+		double cross_length = 4;
+		glBegin(GL_LINES);
+		glVertex3d(-cross_length / 2, cross_length / 2, 0);
+		glVertex3d(cross_length / 2, -cross_length / 2, 0);
+		glVertex3d(cross_length / 2, cross_length / 2., 0);
+		glVertex3d(-cross_length / 2, -cross_length / 2., 0);
+		glEnd();
+
+		glPopMatrix();
+	}
+
+
+	if (!allVisibleThumb) {
+		glColor3f(0.0f, 0.6f, 0.0f);
+		glPushMatrix();
+		glLoadIdentity();
+		glTranslated(0, 60, display_distance - 3);
+		double T_length = 4;
+		glBegin(GL_LINES);
+		glVertex3d(-T_length / 2, T_length / 2, 0);
+		glVertex3d(T_length / 2, T_length / 2, 0);
+		glVertex3d(0, T_length / 2., 0);
+		glVertex3d(0, -T_length / 2., 0);
+		glEnd();
+
+		glPopMatrix();
+	}
+}
+
+
+
+
 void drawFixation(double displayDist) {
 	// draws a small fixation cross at the center of the display
 	glEnable(GL_LINE_SMOOTH);
@@ -293,8 +327,8 @@ void drawStimulus()
 
 	case stimulus_preview:
 		// testing texture, build vertices for curved surface
-		drawSurface(display_distance, depth_disp, my_verts_static, my_contour_data);
-
+		drawSurface(distance_shape,  my_verts_static, my_contour_data);
+		drawFingersOcclusion();
 		break;
 
 	case trial_fixate:
@@ -308,13 +342,13 @@ void drawStimulus()
 	case trial_MSE_reset_first:
 	case trial_MSE_second:
 	case trial_MSE_reset_second:
-		drawSurface(display_distance_jittered, depth_disp, my_verts_static, my_contour_data);
-
+		drawSurface(distance_shape, my_verts_static, my_contour_data);
+		drawFingersOcclusion();
 		break;
 
 	case trial_viewMtFlow:
 
-		drawSurface(display_distance_jittered, depth_disp, my_verts_moving, my_contour_data);
+		drawSurface(distance_shape, my_verts_moving, my_contour_data);
 
 		break;
 
@@ -323,7 +357,7 @@ void drawStimulus()
 		break;
 
 	case stimulus_previewMotion:
-		drawSurface(display_distance, depth_disp, my_verts_moving, my_contour_data);
+		drawSurface(distance_shape, my_verts_moving, my_contour_data);
 		break;
 	}
 }
@@ -613,22 +647,12 @@ void drawInfo()
 					text.draw("--------- E ------------------------------");
 				}
 			}
-			text.draw("# move cnt: " + stringify<int>(move_cnt));
-			text.draw("#reinforce_texture_disparity: " + stringify<bool>(reinforce_texture_disparity));
+			//text.draw("# move cnt: " + stringify<int>(move_cnt));
+			//text.draw("#reinforce_texture_disparity: " + stringify<bool>(reinforce_texture_disparity));
 			text.draw("# depth texture: " + stringify<double>(depth_text));
 			text.draw("# depth stereo: " + stringify<double>(depth_disp));
-			text.draw("# elasped time: " + stringify<double>(ElapsedTime));
-			//text.draw("# depth texture: " + stringify<double>(depth_text));
-			//text.draw("# depth stereo: " + stringify<double>(depth_disp));
-			//text.draw("                           ");
-			//text.draw("# LIGHT amb intensity: " + stringify<double>(amb_intensity));
-			//text.draw("# LIGHT z: " + stringify<float>(lightDir_z));
-			//text.draw("                           ");
-			//text.draw("#visualTarget_X: " + stringify<double>(visualTarget_X));	
+			//text.draw("# elasped time: " + stringify<double>(ElapsedTime));
 
-			//text.draw("centeredObjEdge" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge));
-			//text.draw("obj diff" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge_objM_diff));
-			//text.draw("velmex diff" + stringify<Eigen::Matrix<double, 1, 3> >(centeredObjEdge_velmexM_diff));
 			break;
 
 		case trial_fixate:
@@ -644,8 +668,8 @@ void drawInfo()
 			text.draw("# current stage: " + stringify<int>(current_stage));
 			text.draw("# trial Num: " + stringify<int>(trialNum));
 
-			text.draw("# depth texture: " + stringify<double>(depth_text));
-			text.draw("# depth stereo: " + stringify<double>(depth_disp));
+			//text.draw("# depth texture: " + stringify<double>(depth_text));
+			//text.draw("# depth stereo: " + stringify<double>(depth_disp));
 			text.draw("# elasped time: " + stringify<double>(ElapsedTime));
 			text.draw("# thm to home: " + stringify<double>(dist_thm_home));
 			text.draw("# GA: " + stringify<double>(grip_aperture));
@@ -726,7 +750,7 @@ void onlineTrial() {
 
 		if (testVisualStimuliOnly) {
 
-			if (ElapsedTime > 2* fixateTime) {
+			if (ElapsedTime > 2 * fixateTime) {
 				beepOk(21);
 				grip_aperture_MSE_first = 40;
 				initMotionFlow();
@@ -780,11 +804,11 @@ void onlineTrial() {
 			advanceTrial();
 		}
 		else {
-			if (handNearHome && handSteady) {
+			if (handNearHome) {
 				holdCount_home++;
 			}
 
-			if (holdCount_home > 20) {
+			if (holdCount_home > 30) {
 				advanceTrial();
 			}
 		}
@@ -905,9 +929,9 @@ void handleKeypress(unsigned char key, int x, int y)
 		}
 		break;
 
-	case '-':
+	case 'c':
 		reinforce_texture_disparity = !reinforce_texture_disparity;
-		initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+		initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, distance_shape, stimulus_visiblewidth);
 		break;
 	case 'a':
 		grip_aperture_MSE_first = 999;
@@ -925,7 +949,8 @@ void handleKeypress(unsigned char key, int x, int y)
 			if (depth_text > depth_inc)
 				depth_text = depth_text - depth_inc;
 
-			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+			distance_shape = -(display_distance - (depth_disp+ depth_text)/2);
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, distance_shape, stimulus_visiblewidth);
 
 		}
 
@@ -936,7 +961,8 @@ void handleKeypress(unsigned char key, int x, int y)
 		if (current_stage == stimulus_preview) {
 			depth_text = depth_text + depth_inc;
 
-			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+			distance_shape = -(display_distance - (depth_disp + depth_text) / 2);
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, distance_shape, stimulus_visiblewidth);
 		}
 
 		break;
@@ -989,19 +1015,19 @@ void handleKeypress(unsigned char key, int x, int y)
 	case '+':
 		switch (current_stage) {
 		case stimulus_preview:
-			/*
+			
 			beepOk(5);
 			visibleInfo = false;
 			initBlock();
 			initTrial();
-			*/
+			/*
 			initMotionFlow();
 			trial_timer.reset();
 			trial_timer.start();
 			last_time = 0;
 			ElapsedTime = 0;
 			current_stage = stimulus_previewMotion;
-
+*/
 			break;
 
 		case trial_MSE_first:
@@ -1077,14 +1103,15 @@ void handleKeypress(unsigned char key, int x, int y)
 		}
 		break;
 
-	case '7':
+	case '4':
 
 		if (current_stage == stimulus_preview) {
 
 			if (depth_disp > depth_inc)
 				depth_disp = depth_disp - depth_inc;
 
-			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+			distance_shape = -(display_distance - (depth_disp + depth_text) / 2);
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, distance_shape, stimulus_visiblewidth);
 
 		}
 		else if(current_stage == trial_MSE_second){
@@ -1094,13 +1121,14 @@ void handleKeypress(unsigned char key, int x, int y)
 
 		break;
 
-	case '8':
+	case '5':
 
 		if (current_stage == stimulus_preview) {
 
 			depth_disp = depth_disp + depth_inc;
 
-			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+			distance_shape = -(display_distance - (depth_disp + depth_text) / 2);
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, distance_shape, stimulus_visiblewidth);
 
 		}
 
@@ -1512,6 +1540,7 @@ int buildCurve_byDelY(const CurveYLMap& input_curve_ylmap, CurvePtsData& output_
 
 	double stpsz_J = height / (nr_points_height_default - 1);
 	double stpsz_ycurve_precise = height / (nr_curve_map - 1);
+
 	for (int j = 0; j < nr_points_height_default; j++) {
 		int k = stpsz_J * j / stpsz_ycurve_precise;
 		y = input_curve_ylmap.y_vec[k];
@@ -1526,7 +1555,6 @@ int buildCurve_byDelY(const CurveYLMap& input_curve_ylmap, CurvePtsData& output_
 
 int buildCurve_byDelL(const CurveYLMap& input_curve_ylmap, CurvePtsData& output_curve) {
 
-
 	output_curve = {};
 
 	double depth = input_curve_ylmap.curve_depth;
@@ -1536,6 +1564,7 @@ int buildCurve_byDelL(const CurveYLMap& input_curve_ylmap, CurvePtsData& output_
 	double ylmap_stpsz = input_curve_ylmap.step_size;
 	double y_min = input_curve_ylmap.y_vec[0];
 
+	// get an even number of steps
 	double l_total = input_curve_ylmap.l_vec.back();
 	int nr_steps = (int)(l_total / del_l);
 	if (nr_steps % 2 == 1)
@@ -1672,18 +1701,22 @@ void buildSurfaceVertices_congruent(double shapeWidth, const CurvePtsData& textY
 			double pt_y = l_t;
 			vertex_col = 1.0f;
 
-
-
 			for (int k = 0; k < nr_dots_near; k++) {
 
 				double pt_val = sqrt((pt_x - nearTexDots_dc_vec[k].x) * (pt_x - nearTexDots_dc_vec[k].x) +
 					(pt_y - nearTexDots_dc_vec[k].y) * (pt_y - nearTexDots_dc_vec[k].y));
 
-				if (pt_val < R_blur_fac * R) {
+				double vertex_col_tentative = blurEdge(drop_off_rate, pt_val, R_blur_fac * R, 0.0, 1.0);
+				if(vertex_col_tentative < vertex_col)
+					vertex_col = (vertex_col_tentative);
+
+				/*
+				if (pt_val <= R_blur_fac * R) {
 					double vertex_col_tentative = blurEdge(drop_off_rate, pt_val, R_blur_fac * R, 0.0, 1.0);
 					vertex_col = float(vertex_col_tentative);
 					break;
 				}
+				*/
 			}
 
 			float x_t = (pt_x - x_offset);
@@ -1698,7 +1731,7 @@ void buildSurfaceVertices_congruent(double shapeWidth, const CurvePtsData& textY
 			vertices_data.light_normals_vec.push_back(1);
 
 
-			vertices_data.colors_vec.push_back(vertex_col);
+			vertices_data.colors_vec.push_back((float)vertex_col);
 			vertices_data.colors_vec.push_back(0);
 			vertices_data.colors_vec.push_back(0);
 
@@ -1936,7 +1969,7 @@ void buildSurfaceVertices_TexDotsOnText(double shapeWidth, const CurvePtsData& d
 }
 
 
-void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeDepth, double displayDist, double contourPanelSeparation) {
+void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeDepth, double distShapeToEye, double contourPanelSeparation) {
 
 	// part 1: generate TexDots
 	CurveYLMap ylMap_Text;
@@ -1951,7 +1984,7 @@ void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeD
 	CurvePtsData y_curve_data_text;
 	int nr_points_height_static = buildCurve_byDelY(ylMap_Text, y_curve_data_text);
 	buildSurfaceVertices_congruent(shapeWidth, y_curve_data_text, Tex_Dots_text, my_verts_static);
-	buildContour(contourPanelSeparation, y_curve_data_text, y_curve_data_text, -(displayDist - shapeDepth), my_contour_data);
+	buildContour(contourPanelSeparation, y_curve_data_text, y_curve_data_text, distShapeToEye, my_contour_data);
 
 	// part 3: prebuild movement
 	CurvePtsData y_curve_data_text_m;
@@ -1961,7 +1994,7 @@ void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeD
 
 }
 
-void buildSurface_incongruent(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double displayDist, double contourPanelSeparation) {
+void buildSurface_incongruent(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double distShapeToEye, double contourPanelSeparation) {
 
 	// part 1: generate TexDots and project to Disp Surface
 	CurveYLMap ylMap_Text;
@@ -1976,27 +2009,27 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 	scanCurve(shapeHeight, dispDepth, ylMap_Disp);
 	l_curve_disp = ylMap_Disp.l_vec.back();
 	ProjTexDots_ResizeMap TexDots_RszMap_Disp;
-	sampleTexDotsResize(ylMap_Text, ylMap_Disp, -(displayDist - dispDepth), TexDots_RszMap_Disp);
-	projectTexDots(-(displayDist - dispDepth), ylMap_Text, ylMap_Disp, Tex_Dots_text, TexDots_RszMap_Disp, Tex_Dots_disp);
+	sampleTexDotsResize(ylMap_Text, ylMap_Disp, distShapeToEye, TexDots_RszMap_Disp);
+	projectTexDots(distShapeToEye, ylMap_Text, ylMap_Disp, Tex_Dots_text, TexDots_RszMap_Disp, Tex_Dots_disp);
 
 	// part 2: static surface
 	CurvePtsData y_curve_data_text, y_curve_data_disp;
 	int nr_points_height_static = buildCurve_byDelY(ylMap_Disp, y_curve_data_disp);
-	projectCurve(ylMap_Text, -(displayDist - dispDepth), y_curve_data_disp, y_curve_data_text);
-	buildSurfaceVertices_TexDotsOnDisp(shapeWidth, y_curve_data_disp, y_curve_data_text, -(displayDist - dispDepth), Tex_Dots_disp, my_verts_static);
-	buildContour(contourPanelSeparation, y_curve_data_disp, y_curve_data_text, -(displayDist - dispDepth), my_contour_data);
+	projectCurve(ylMap_Text, distShapeToEye, y_curve_data_disp, y_curve_data_text);
+	buildSurfaceVertices_TexDotsOnDisp(shapeWidth, y_curve_data_disp, y_curve_data_text, distShapeToEye, Tex_Dots_disp, my_verts_static);
+	buildContour(contourPanelSeparation, y_curve_data_disp, y_curve_data_text, distShapeToEye, my_contour_data);
 
 	// part 3: prebuild movement
 	CurvePtsData y_curve_data_text_m, y_curve_data_disp_m;
 	if (reinforce_texture_disparity) {
 		nr_points_height = buildCurve_byDelL(ylMap_Text, y_curve_data_text_m);
-		projectCurve(ylMap_Disp, -(displayDist - dispDepth), y_curve_data_text_m, y_curve_data_disp_m);
-		buildSurfaceVertices_TexDotsOnText(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, -(displayDist - dispDepth), Tex_Dots_text, my_verts_moving);
+		projectCurve(ylMap_Disp, distShapeToEye, y_curve_data_text_m, y_curve_data_disp_m);
+		buildSurfaceVertices_TexDotsOnText(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, Tex_Dots_text, my_verts_moving);
 	}
 	else {
 		nr_points_height = buildCurve_byDelL(ylMap_Disp, y_curve_data_disp_m);
-		projectCurve(ylMap_Text, -(displayDist - dispDepth), y_curve_data_disp_m, y_curve_data_text_m);
-		buildSurfaceVertices_TexDotsOnDisp(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, -(displayDist - dispDepth), Tex_Dots_disp, my_verts_moving);
+		projectCurve(ylMap_Text, distShapeToEye, y_curve_data_disp_m, y_curve_data_text_m);
+		buildSurfaceVertices_TexDotsOnDisp(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, Tex_Dots_disp, my_verts_moving);
 	}
 	buildAllColorsVec(my_verts_moving, AllTimeColorsVec_Moving);
 
@@ -2069,17 +2102,17 @@ void updateVerticesData(int timeID) {
 }
 
 
-void initSurface(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double displayDist, double contourPanelSeparation) {
+void initSurface(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double distShapeToEye, double contourPanelSeparation) {
 
 	stimulus_built = false;
 	if (abs(textDepth - dispDepth) < 0.1) {
-		buildSurface_congruent(shapeWidth, shapeHeight, textDepth, displayDist, contourPanelSeparation);
+		buildSurface_congruent(shapeWidth, shapeHeight, textDepth, distShapeToEye, contourPanelSeparation);
 	}
 	else {
-		buildSurface_incongruent(shapeWidth, shapeHeight, dispDepth, textDepth, displayDist, contourPanelSeparation);
+		buildSurface_incongruent(shapeWidth, shapeHeight, dispDepth, textDepth, distShapeToEye, contourPanelSeparation);
 	}
 
-	amb_intensity = adjustAmbient(depth_text, max_intensity, 0.8, 0.5, 20, 40);
+
 	stimulus_built = true;
 }
 
@@ -2284,7 +2317,8 @@ void initVariables()
 	if (testVisualStimuliOnly) {
 
 		initProjectionScreen(display_distance);
-		initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+		distance_shape = -display_distance;
+		initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, distance_shape, stimulus_visiblewidth);
 		current_stage = stimulus_preview;
 	}
 
@@ -2345,7 +2379,7 @@ void initTrial()
 
 	if (training) {
 
-		depth_mean = depth_training_min + depth_inc * (rand() % 13);
+		depth_mean = depth_training_min + 2 * (rand() % 13);
 		//depth_mean = depth_thresh_flat + (rand() % 13);
 		depth_disp = depth_mean;
 		depth_text = depth_mean;
@@ -2369,8 +2403,9 @@ void initTrial()
 
 	jitter_z = ((rand() % 41) - 20) / 2.0; // from -10 to 10
 	display_distance_jittered = display_distance + jitter_z;
+	distance_shape = -(display_distance_jittered - depth_mean);
 
-	initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance_jittered, stimulus_visiblewidth);
+	initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, distance_shape, stimulus_visiblewidth);
 
 
 	// init movement 
@@ -2543,7 +2578,8 @@ void calibrate_system() {
 			beepOk(1);
 
 			Exp_Initialized = true;
-			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, display_distance, stimulus_visiblewidth);
+			distance_shape = -(display_distance - (depth_disp + depth_text) / 2.0);
+			initSurface(stimulus_width, stimulus_height, depth_disp, depth_text, distance_shape, stimulus_visiblewidth);
 			current_stage = stimulus_preview;
 		}
 		else {

@@ -27,6 +27,7 @@
 #include <gl\gl.h>            // Header File For The OpenGL32 Library
 #include <gl\glu.h>            // Header File For The GLu32 Library
 #include "glut.h"            // Header File For The GLu32 Library
+#include "freeglut.h"          // Header File For The GLu32 Library
 #include <MMSystem.h>
 #endif
 
@@ -183,7 +184,7 @@ double ratio_visiblewidth_height = 1.2;//1.1;
 // depths of visual stimuli
 double depth_mean = 40;
 double depth_delta = 0;
-double depth_text = 20;
+double depth_text = 40;
 double depth_disp = 40;
 double l_curve_text, l_curve_disp;
 
@@ -195,7 +196,7 @@ double depth_inc = 10;
 double jitter_z = 0;
 double display_distance_jittered = display_distance + jitter_z;
 double visualTarget_X = 0, visualTarget_Y = 0;
-double distance_shape = -display_distance_jittered;
+double dist_toEye = -display_distance_jittered;
 
 /********** STIMULUS VERTICES ***************/
 struct CurveYLMap {
@@ -271,13 +272,10 @@ int nr_points_height = nr_points_height_default;
 int total_ind = 0;
 
 /********* TEXTURE *********/
-//float Tex_dot_density = 0.011; //0.02;
-//float Tex_dot_radius = 2.4; // 2.2;
-//float Tex_dot_separation_ratio = 1.4;
 
 float Tex_dot_density = 0.015; //0.02;
 float Tex_dot_radius = 2.3; // 2.2;
-float Tex_dot_separation_ratio = 1.4;
+float Tex_dot_separation_ratio = 1.45;
 
 //blur edge
 double drop_off_rate = 0.42;
@@ -336,7 +334,7 @@ double fixateTime = 600;
 
 /*********** for DEBUGGING **********/
 float time_var = 200;
-bool testVisualStimuliOnly = false;
+bool testVisualStimuliOnly = true;
 /*************************** FUNCTIONS ***********************************/
 void initOptotrak();
 void initMotors();
@@ -352,7 +350,7 @@ void shutdown();
 void beepOk(int tone);
 
 void initMotionFlow();
-void initSurface(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double distShapeToEye, double contourPanelSeparation);
+void initSurface();
 void initBlock();
 void initTrial();
 void onlineTrial();
@@ -366,9 +364,8 @@ void drawFixation(double displayDist);
 
 void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeDepth, double distShapeToEye, double contourPanelSeparation);
 void buildSurface_incongruent(double shapeWidth, double shapeHeight, double dispDepth, double textDepth, double distShapeToEye, double contourPanelSeparation);
-void buildSurfaceVertices_congruent(double shapeWidth, const CurvePtsData& textYCurve, TextureDotsData& TexDotsOnText, VerticesData& vertices_data);
-void buildSurfaceVertices_TexDotsOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnDisp, VerticesData& vertices_data);
-void buildSurfaceVertices_TexDotsOnText(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnText, VerticesData& vertices_data);
+void buildSurface_TexOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnDisp, VerticesData& vertices_data);
+void buildSurface_TexOnText(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnText, VerticesData& vertices_data);
 void buildContour(double ContourWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, float distShapeToEye, ContourData& new_contours_vert);
 void buildAllColorsVec(const VerticesData& vertices_data, AllTimeColorsVec& colorsVecs);
 void updateVerticesData(int timeID);

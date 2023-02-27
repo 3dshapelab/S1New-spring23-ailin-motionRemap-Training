@@ -376,7 +376,7 @@ void drawGLScene()
 
 	drawStimulus();
 	drawInfo();
-	//drawTaskGuide();
+	drawTaskGuide();
 
 
 	// Draw right eye view
@@ -389,7 +389,7 @@ void drawGLScene()
 
 	drawStimulus();
 	drawInfo();
-	//drawTaskGuide();
+	drawTaskGuide();
 
 
 	glutSwapBuffers();
@@ -515,6 +515,13 @@ void drawTaskGuide() {
 
 		switch (current_stage) {
 
+		case trial_viewStatic:
+			glColor3fv(glRed);
+			if (!gripSmall)
+				text.draw("                                                                           T --> <-- X");
+			if (!handNearHome)
+				text.draw("                                                                           | | > H < | |");
+			break;
 		case trial_MSE_first:
 		case trial_MSE_second:
 		{
@@ -522,12 +529,6 @@ void drawTaskGuide() {
 			text.draw("                                                                           ESTIMATE:");
 			text.draw("                                                                           Press + to enter");
 			glColor3fv(glRed);
-
-			if (!handNearHome)
-				text.draw("                                                                           | | > H < | |");
-
-			if (!allVisibleFingers)
-				text.draw("                                                                            TT    XX");
 
 			if (attemped_MSE && !gripSteady)
 				text.draw("                                                                           Hold ...");
@@ -537,29 +538,25 @@ void drawTaskGuide() {
 		case trial_MSE_reset_first:
 		{
 			glColor3fv(glWhite);
-			text.draw("                                                                           Home:");
+			text.draw("                                                                           RESET:");
 			glColor3fv(glRed);
 			if (!gripSmall)
 				text.draw("                                                                           T --> <-- X");
-			//if (!gripSteady)
-			//	text.draw("                                                                           Stop Changing Grip  ->  <-");
 		}
 		break;
 
 
 		case trial_MSE_reset_second:
 		{
-			//if(handNearHome && handSteady){
-			glColor3fv(glWhite);
 
-			text.draw("                                                                           Return Home:");
+			glColor3fv(glWhite);
+			text.draw("                                                                           RESET & Home:");
 
 			glColor3fv(glRed);
+			if (!gripSmall)
+				text.draw("                                                                           T --> <-- X");
 			if (!handNearHome)
-				text.draw("                                                                           Not Home |||>");
-
-			if (holdCount_home > 1 && !handSteady && handNearHome)
-				text.draw("                                                                           Hold");
+				text.draw("                                                                           | | > H < | |");
 
 		}
 		break;
@@ -761,7 +758,7 @@ void onlineTrial() {
 		}
 		else {
 			// ready for MSE?
-			if (handNearHome && gripSmall && gripSteady) {
+			if ((ElapsedTime > 2 * fixateTime) && handNearHome && gripSmall && gripSteady) {
 				beepOk(21);
 				timestamp_MSEstart1 = ElapsedTime;
 				current_stage = trial_MSE_first;
@@ -806,11 +803,11 @@ void onlineTrial() {
 			advanceTrial();
 		}
 		else {
-			if (handNearHome) {
+			if (handNearHome && gripSmall && gripSteady) {
 				holdCount_home++;
 			}
 
-			if (holdCount_home > 30) {
+			if (holdCount_home > 20) {
 				advanceTrial();
 			}
 		}
@@ -2028,7 +2025,7 @@ void initSurface() {
 
 	stimulus_built = false;
 
-	// update display distance and height
+
 	if (reinforce_texture_disparity) {
 		dist_toEye = -(display_distance_jittered - depth_disp + depth_text - 30);
 	}
@@ -2036,6 +2033,7 @@ void initSurface() {
 		dist_toEye = -(display_distance_jittered - 30);
 	}
 
+	//dist_toEye = -(display_distance_jittered - depth_disp);
 	stimulus_height = tan((DEG2RAD * visual_angle) / 2) * 2 * dist_toEye;
 	stimulus_visiblewidth = ratio_visiblewidth_height * stimulus_height;
 
@@ -2179,7 +2177,7 @@ void initStreams()
 	}
 	else if (targetCueID == 1) {
 		reinforce_texture_disparity = false;
-		mv_num = 2;
+		mv_num = 3;
 		speed_moderator = speed_moderator_Disp;
 	}
 	else {
@@ -2288,6 +2286,7 @@ void initBlock()
 void initMotionFlow() {
 
 	move_cnt = 0;
+	/*
 	if (reinforce_texture_disparity) {
 		nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
 		speed_moderator = speed_moderator_Text;
@@ -2296,7 +2295,11 @@ void initMotionFlow() {
 		nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
 		speed_moderator = speed_moderator_Disp;
 	}
-	updateEveryMs = cycle_time / (nr_mvpts_max);
+	*/
+
+	nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
+
+	//updateEveryMs = cycle_time / (nr_mvpts_max);
 
 	last_time = trial_timer.getElapsedTimeInMilliSec();
 
@@ -2315,8 +2318,8 @@ void initTrial()
 
 	if (training) {
 
-		depth_mean = depth_training_min + 2 * (rand() % 13);
-		//depth_mean = depth_thresh_flat + (rand() % 13);
+		depth_mean = depth_training_min + 4.5 * (rand() % 6);
+
 		depth_disp = depth_mean;
 		depth_text = depth_mean;
 	}
@@ -2337,7 +2340,7 @@ void initTrial()
 	}
 
 
-	jitter_z = ((rand() % 41) - 20) / 2.0; // from -10 to 10
+	jitter_z = ((rand() % 21) - 10) / 2.0; // from -5 to 5
 	display_distance_jittered = display_distance + jitter_z;
 
 	initSurface();

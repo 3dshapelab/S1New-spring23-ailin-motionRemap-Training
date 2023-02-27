@@ -288,11 +288,11 @@ float lightDir_z = 0.5;
 /********** MOVEMENT ***************/
 int move_cnt = 0;
 int nr_mvpts_max = 20;
-double speed_moderator = 7;
-double speed_moderator_Text = 7.5;
-double speed_moderator_Disp = 5.5;
+double speed_moderator = 10;
+double speed_moderator_Text = 9.5; // 9;
+double speed_moderator_Disp = 9; // 5.5;
 int rock_movement_divider = 2;
-double updateEveryMs = 30;
+double updateEveryMs = 60;
 double cycle_time = 1200;
 double motionFlowTime = cycle_time;
 double mv_num = 3;

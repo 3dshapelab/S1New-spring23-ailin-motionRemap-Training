@@ -90,7 +90,7 @@ int thu1 = 15, thu2 = 17, thu3 = 18;
 int calibration_T = 1, calibration_I = 2;
 
 // Position variables for keeping track of finger movementm
-Vector3d ind, indJoint, thm, thmJoint;
+Vector3d ind, indJoint, thm, thmJoint, ind_mse1, thm_mse1, ind_mse2, thm_mse2;
 Vector3d homePos(0, 0, 0), thmTarget(0, 0, 0), visTarget(0, 0, 0), centeredObjEdge(0, 0, 0);
 Vector3d vec_ind_thm, thmToHome, thmToTarget;
 Vector3d indexCalibrationPoint(0, 0, 0), thumbCalibrationPoint(0, 0, 0), CalibrationPoint(0, 0, 0);
@@ -127,7 +127,7 @@ double grip_aperture_MSE_first = 0;
 double grip_aperture_MSE_second = 0;
 bool attemped_MSE = false;
 
-
+bool handIsReset = false;
 
 /********** TRIAL SPECIFIC PARAMETERS ***************/
 ParametersLoader parameters;
@@ -148,7 +148,7 @@ string parametersFileName_extra = experiment_directory + "parameters_spring23-ai
 
 // response file
 ofstream responseFile;
-string responseFile_headers = "subjName\tIOD\tblockN\ttrialN\tDepth\tDepthDelta\tDepth_text\tDepth_disp\treinforceTexture\tdisplayDistance\tMSE1\tMSE2\tRT_MSE1\tRT_MSE2\tcalibNum\tvisualAngle\tshapeHeight\tshapeWidth\tTexDotsDensity\tTexDotRadius\tTexDotSepRatio\tmtFlSpeedMod\trockMod\tmtFlTime\tRandomTraining";
+string responseFile_headers = "subjName\tIOD\tblockN\ttrialN\tDepth\tDepthDelta\tDepth_text\tDepth_disp\treinforceTexture\tdisplayDistance\tMSE1\tMSE2\tRT_MSE1\tRT_MSE2\tthmX1\tthmY1\tthmZ1\tindX1\tindY1\tindZ1\tthmX2\tthmY2\tthmZ2\tindX2\tindY2\tindZ2\tcalibNum\tvisualAngle\tshapeHeight\tshapeWidth\tTexDotsDensity\tTexDotRadius\tTexDotSepRatio\tmtFlSpeedMod\trockMod\tmtFlTime\tRandomTraining";
 
 string subjectName;
 
@@ -288,9 +288,9 @@ float lightDir_z = 0.5;
 /********** MOVEMENT ***************/
 int move_cnt = 0;
 int nr_mvpts_max = 20;
-double speed_moderator = 10;
-double speed_moderator_Text = 9.5; // 9;
-double speed_moderator_Disp = 9; // 5.5;
+double speed_moderator = 6;
+double speed_moderator_Text = 5; // 9;
+double speed_moderator_Disp = 5; // 5.5;
 int rock_movement_divider = 2;
 double updateEveryMs = 60;
 double cycle_time = 1200;

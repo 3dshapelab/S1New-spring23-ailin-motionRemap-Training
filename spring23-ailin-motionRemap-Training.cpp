@@ -521,6 +521,9 @@ void drawTaskGuide() {
 				text.draw("                                                                           T --> <-- X");
 			if (!handNearHome)
 				text.draw("                                                                           | | > H < | |");
+			if (attemped_MSE && (!gripSteady) || (!handSteady) )
+				text.draw("                                                                           Hold ...");
+
 			break;
 		case trial_MSE_first:
 		case trial_MSE_second:
@@ -530,7 +533,7 @@ void drawTaskGuide() {
 			text.draw("                                                                           Press + to enter");
 			glColor3fv(glRed);
 
-			if (attemped_MSE && !gripSteady)
+			if (attemped_MSE && (!gripSteady) || (!handSteady))
 				text.draw("                                                                           Hold ...");
 		}
 		break;
@@ -542,6 +545,8 @@ void drawTaskGuide() {
 			glColor3fv(glRed);
 			if (!gripSmall)
 				text.draw("                                                                           T --> <-- X");
+			if (attemped_MSE && (!gripSteady) || (!handSteady))
+				text.draw("                                                                           Hold ...");
 		}
 		break;
 
@@ -557,6 +562,8 @@ void drawTaskGuide() {
 				text.draw("                                                                           T --> <-- X");
 			if (!handNearHome)
 				text.draw("                                                                           | | > H < | |");
+			if (attemped_MSE && (!gripSteady) || (!handSteady))
+				text.draw("                                                                           Hold ...");
 
 		}
 		break;
@@ -757,8 +764,9 @@ void onlineTrial() {
 			}
 		}
 		else {
+			handIsReset = handSteady && gripSmall && gripSteady && handNearHome;
 			// ready for MSE?
-			if ((ElapsedTime > 2 * fixateTime) && handNearHome && gripSmall && gripSteady) {
+			if ((ElapsedTime > 2 * fixateTime) && handIsReset) {
 				beepOk(21);
 				timestamp_MSEstart1 = ElapsedTime;
 				current_stage = trial_MSE_first;
@@ -768,8 +776,8 @@ void onlineTrial() {
 
 
 	case trial_MSE_reset_first:
-		// MSE registered, close fingers to continue
-		if (gripSmall && gripSteady) {
+		handIsReset = handSteady && gripSmall && gripSteady && handNearHome;
+		if (handIsReset) {
 			attemped_MSE = false;
 			initMotionFlow();
 			current_stage = trial_viewMtFlow;
@@ -803,7 +811,8 @@ void onlineTrial() {
 			advanceTrial();
 		}
 		else {
-			if (handNearHome && gripSmall && gripSteady) {
+			handIsReset = handSteady && gripSmall && gripSteady && handNearHome;
+			if (handIsReset) {
 				holdCount_home++;
 			}
 
@@ -836,6 +845,10 @@ void advanceTrial()
 		grip_aperture_MSE_second << "\t" <<
 		timestamp_MSEend1 - timestamp_MSEstart1 << "\t" <<
 		timestamp_MSEend2 - timestamp_MSEstart2 << "\t" <<
+		thm_mse1.transpose() << "\t" <<
+		ind_mse1.transpose() << "\t" <<
+		thm_mse2.transpose() << "\t" <<
+		ind_mse2.transpose() << "\t" <<
 		calibrationNum << "\t" <<
 		visual_angle << "\t" <<
 		stimulus_height << "\t" <<
@@ -1035,6 +1048,8 @@ void handleKeypress(unsigned char key, int x, int y)
 
 				beepOk(4);
 				grip_aperture_MSE_first = grip_aperture;
+				ind_mse1 = ind;
+				thm_mse1 = thm;
 				timestamp_MSEend1 = ElapsedTime;
 				current_stage = trial_MSE_reset_first;
 			}
@@ -1056,6 +1071,8 @@ void handleKeypress(unsigned char key, int x, int y)
 
 					beepOk(4);
 					grip_aperture_MSE_second = grip_aperture;
+					ind_mse2 = ind;
+					thm_mse2 = thm;
 					timestamp_MSEend2 = ElapsedTime;
 					current_stage = trial_MSE_reset_second;
 				}
@@ -2286,20 +2303,21 @@ void initBlock()
 void initMotionFlow() {
 
 	move_cnt = 0;
-	/*
-	if (reinforce_texture_disparity) {
-		nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
-		speed_moderator = speed_moderator_Text;
-	}
-	else {
-		nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
-		speed_moderator = speed_moderator_Disp;
-	}
-	*/
 
 	nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
+	updateEveryMs = cycle_time / (nr_mvpts_max);
+	if (reinforce_texture_disparity) {
+		//nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);		
+		speed_moderator = speed_moderator_Text * l_curve_text / 60;
+	}
+	else {
+		//nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
+		speed_moderator = speed_moderator_Disp * l_curve_disp / 60;
+	}
+	
 
-	//updateEveryMs = cycle_time / (nr_mvpts_max);
+	//nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
+
 
 	last_time = trial_timer.getElapsedTimeInMilliSec();
 
@@ -2426,7 +2444,7 @@ void calibrate_fingers()
 			}
 
 			beepOk(1);
-			homePos = (thumbCalibrationPoint + indexCalibrationPoint) / 2 + Vector3d(-15, 25, 0);
+			//homePos = (thumbCalibrationPoint + indexCalibrationPoint) / 2 + Vector3d(-15, 25, 0);
 
 			currentInitStep = to_CalibrateFingerTips;
 		}
@@ -2454,7 +2472,7 @@ void calibrate_fingers()
 					initTrial();
 				}
 				else {
-					currentInitStep = to_MoveApparatus; //to_MarkHomePos;
+					currentInitStep = to_MarkHomePos;
 					Fingers_Calibrated = true;
 				}
 			}
@@ -2540,7 +2558,7 @@ void online_fingers()
 			thm = thumbCoords.getP1();
 
 			thmToHome = homePos - thm;
-			thmToTarget = thmTarget - thm;
+			//thmToTarget = thmTarget - thm;
 
 			old_dist_thm_home = dist_thm_home;
 			dist_thm_home = thmToHome.norm();
@@ -2571,11 +2589,11 @@ void online_fingers()
 			vel_grip_change = 999;
 		}
 
-		handNearHome = (dist_thm_home < thresholdDist_near_home);
+		//handNearHome = (dist_thm_home < thresholdDist_near_home);
+		handNearHome = (abs(thmToHome.y()) < 12);
 		handSteady = (abs(vel_dist_home) < thresholdVelthm_steady);
 		gripSmall = (grip_aperture < thresholdGA_small);
 		gripSteady = (abs(vel_grip_change) < thresholdVelGA_steady);
-
 
 	}
 

@@ -2042,15 +2042,7 @@ void initSurface() {
 
 	stimulus_built = false;
 
-
-	if (reinforce_texture_disparity) {
-		dist_toEye = -(display_distance_jittered - depth_disp + depth_text - 30);
-	}
-	else {
-		dist_toEye = -(display_distance_jittered - 30);
-	}
-
-	//dist_toEye = -(display_distance_jittered - depth_disp);
+	dist_toEye = -(display_distance_jittered - depth_disp);
 	stimulus_height = tan((DEG2RAD * visual_angle) / 2) * 2 * dist_toEye;
 	stimulus_visiblewidth = ratio_visiblewidth_height * stimulus_height;
 

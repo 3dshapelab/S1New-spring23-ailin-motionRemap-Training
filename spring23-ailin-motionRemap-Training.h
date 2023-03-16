@@ -148,7 +148,7 @@ string parametersFileName_extra = experiment_directory + "parameters_spring23-ai
 
 // response file
 ofstream responseFile;
-string responseFile_headers = "subjName\tIOD\tblockN\ttrialN\tDepth\tDepthDelta\tDepth_text\tDepth_disp\treinforceTexture\tdisplayDistance\tMSE1\tMSE2\tRT_MSE1\tRT_MSE2\tthmX1\tthmY1\tthmZ1\tindX1\tindY1\tindZ1\tthmX2\tthmY2\tthmZ2\tindX2\tindY2\tindZ2\tcalibNum\tvisualAngle\tshapeHeight\tshapeWidth\tTexDotsDensity\tTexDotRadius\tTexDotSepRatio\tmtFlSpeedMod\trockMod\tmtFlTime\tRandomTraining";
+string responseFile_headers = "subjName\tIOD\tblockN\ttrialN\tDepth\tDepthDelta\tDepth_text\tDepth_disp\treinforceTexture\tdisplayDistance\tMSE1\tMSE2\tRT_MSE1\tRT_MSE2\tthmX1\tthmY1\tthmZ1\tindX1\tindY1\tindZ1\tthmX2\tthmY2\tthmZ2\tindX2\tindY2\tindZ2\tcalibNum\tvisualAngle\tshapeHeight\tshapeWidth\tTexDotsDensity\tTexDotRadius\tTexDotSepRatio\tmtFlSpeedMod\tmovPercent\tmtFlTime\tRandomTraining";
 
 string subjectName;
 
@@ -164,21 +164,21 @@ int trialNum_max = 1000;
 int trainNum_cap = 20;
 
 double percentComplete = 0;
-int repetition = 4;
-int totalTrNum = 6 * 8 * repetition;
+int repetition = 3;
+int totalTrNum = 6 * 6 * repetition;
 
 int occlusionFrames_MSE = 0;
 
 /********** STIMULUS SHAPE ***************/
 // stimulus shape
 double display_distance;
-double visual_angle = 8.0; // stim diangonal size
+double visual_angle = 6.4; // stim diangonal size
 
 //height and width
 double stimulus_height = 70; //tan((DEG2RAD * visual_angle)/2) * 2 * (abs(display_distance));
 double stimulus_width = 70; //ratio_bgwidth_height * stimulus_height;
 double stimulus_visiblewidth = 70; //ratio_visiblewidth_height * stimulus_height;
-double ratio_width_height = 1.3;//1.3;
+double ratio_width_height = 1.36;//1.3;
 double ratio_visiblewidth_height = 1.1;//1.1;
 
 // depths of visual stimuli
@@ -221,12 +221,10 @@ struct Vec2 {
 };
 
 struct ProjTexDots_ResizeMap {
-	std::vector<float> l_vec;
 	std::vector<Vec2> R_resize_vec;
 	double depth_proj;
 	double depth_origin;
-	double del_l;
-	double R_Rsz_y_max;
+	double del_l_proj;
 };
 
 
@@ -235,10 +233,7 @@ struct TextureDotsData {
 	std::vector<Vec2> R_resize_vec;
 	Vec2 TexMapSize;
 	float Radius;
-	float Radius_y_max;
-	int nr_D_L;
-	int nr_D_H;
-	int nr_S;
+	float margin_y;
 };
 
 struct VerticesData {
@@ -272,30 +267,54 @@ int nr_points_height = nr_points_height_default;
 int total_ind = 0;
 
 /********* TEXTURE *********/
-float Tex_dot_density = 0.015; //0.02;
-float Tex_dot_radius = 2.3; // 2.2;
-float Tex_dot_separation_ratio = 1.45;
+float Tex_dot_density = 0.0145; //0.02;
+float Tex_dot_radius = 2.6; // 2.2;
+float Tex_dot_separation_ratio = 1.43;
+float vertex_col_max = 0.9;
+float vertex_col_min = 0.2;
+int nr_X_Lat_TexDot = 5;
+float jitter_Lat_TexDot = 0.4;
 
 //blur edge
-double drop_off_rate = 0.42;
+double drop_off_rate = 0.45;
 double R_blur_fac = 2 / (1 + drop_off_rate);//1.28;
 
 /********** LIGHTING ***************/
 float max_intensity = 0.8;
 float amb_intensity = 0.4;
-float lightDir_z = 0.5;
+float lightDir_z = 0.8;
+
+float depth_range_light = 28;
+float depth_flat_light = 20;
+float depth_deep_light = 48;
+float ambVDif_flat_light = 1.2;
+float ambVDif_deep_light = 0.6;
+float max_intensity_range = 0.12;
+float max_intensity_flat_light = 0.75;
+float max_intensity_deep_light = 0.95;
 
 /********** MOVEMENT ***************/
 int move_cnt = 0;
 int nr_mvpts_max = 20;
-double speed_moderator = 6;
-double speed_moderator_Text = 5; // 9;
-double speed_moderator_Disp = 5; // 5.5;
-int rock_movement_divider = 2;
+double speed_moderator = 7;
+double speed_moderator_Text = 7; // 9;
+double speed_moderator_Disp = 7; // 5.5;
 double updateEveryMs = 60;
 double cycle_time = 1200;
 double motionFlowTime = cycle_time;
-double mv_num = 3;
+double movement_percent;
+double mv_num = 4;
+
+// how to decide rotation magnitude
+enum rotMagnitudes { rot_shape, prop_to_depth };
+rotMagnitudes use_rotateMag = prop_to_depth;
+
+//method 2: rot_shape
+double ang_rotate = 12;
+double thresh_tan = tan(DEG2RAD * ang_rotate);
+
+// method 3: prop_to_depth
+double portion_max = 0.12;
 
 /********** ONLINE CONTROL ***************/
 enum Stages { exp_initializing, stimulus_preview, stimulus_previewMotion, prep_trial, trial_fixate, trial_viewStatic, trial_MSE_first, trial_MSE_reset_first, trial_viewMtFlow, trial_MSE_second, trial_MSE_reset_second, break_time, exp_completed };
@@ -317,6 +336,7 @@ bool stimulus_built = false;
 bool roll_rock = false;
 bool task_guide_info = true;
 bool trainingCueIsRandom = false;
+bool fingerTracking = true;
 
 enum errorStates { no_error, training_exceeded };
 errorStates current_error_state = no_error;
@@ -332,8 +352,8 @@ double timestamp_mtFlow;
 double fixateTime = 600;
 
 /*********** for DEBUGGING **********/
-float time_var = 200;
-bool testVisualStimuliOnly = false;
+
+bool testVisualStimuliOnly = true; 
 /*************************** FUNCTIONS ***********************************/
 void initOptotrak();
 void initMotors();
@@ -366,22 +386,27 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 void buildSurface_TexOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnDisp, VerticesData& vertices_data);
 void buildSurface_TexOnText(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnText, VerticesData& vertices_data);
 void buildContour(double ContourWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, float distShapeToEye, ContourData& new_contours_vert);
-void buildAllColorsVec(const VerticesData& vertices_data, AllTimeColorsVec& colorsVecs);
-void updateVerticesData(int timeID);
+void buildAllColorsVec_TexOnText(double shapeWidth, double distShapeToEye, int PtsMoveMax, const CurvePtsData& textYCurve, const VerticesData& vertices_data, const TextureDotsData& TexDotsOnText, AllTimeColorsVec& colorsVecs);
+void buildAllColorsVec_TexOnDisp(double shapeWidth, double distShapeToEye, int PtsMoveMax, const CurvePtsData& dispYCurve, const VerticesData& vertices_data, const TextureDotsData& TexDotsOnDisp, AllTimeColorsVec& colorsVecs);
+void updateVerticesData(int timeID, int input_nr_mvpts_MAX, const AllTimeColorsVec& colorsVecs);
+
 
 void scanCurve(double shapeHeight, double shapeDepth, CurveYLMap& output_curve_ylmap);
 void projectCurve(const CurveYLMap& curve_map_proj, double distShapeToEye, const CurvePtsData& origin_curve, CurvePtsData& output_curve_proj);
 int buildCurve_byDelY(const CurveYLMap& input_curve_ylmap, CurvePtsData& output_curve);
 int buildCurve_byDelL(const CurveYLMap& input_curve_ylmap, CurvePtsData& output_curve);
 void generateTexDots(float TM_X, float TM_Y, float dotDensity, float dotRadius, float dotSeparationRatio, TextureDotsData& outputTexDots);
+void generateTexDots_hybrid(float TM_X, float TM_Y, float dotDensity, float dotRadius, float dotSeparationRatio, int nr_X_Lattice, float dotJitterScale_Lattice, TextureDotsData& outputTexDots);
 void sampleTexDotsResize(const CurveYLMap& textCurveYLMap, const CurveYLMap& dispCurveYLMap, double distShapeToEye, ProjTexDots_ResizeMap& output_RszMap);
 void projectTexDots(double distShapeToEye, const CurveYLMap& YLMap_origin, const CurveYLMap& YLMap_proj, const TextureDotsData& input_TexDots_origin, const ProjTexDots_ResizeMap& RszMap_proj, TextureDotsData& output_TexDots_proj);
+float adjustAmbient(double textDepth, float maxInt, double rateAmbvsDiff_flat, double rateAmbvsDiff_deep, double Depth_flat, double Depth_deep);
 
 double getZ(double shapeHeight, double shapeDepth, double vertexY);
 double getTg(double shapeHeight, double shapeDepth, double Y);
 double mapLtoY(const CurveYLMap& inputYLMap, double TargetL, int i_int = i_map_mid);
 double mapYtoL(const CurveYLMap& inputYLMap, double input_y);
 double SolveForZ_projected(double theHeight, double newDepth, double l, double y0, double z0);
+int guessNrmv(const CurvePtsData& input_YCurve);
 
 void drawInfo();
 void drawInfo_alignment(GLText curText);

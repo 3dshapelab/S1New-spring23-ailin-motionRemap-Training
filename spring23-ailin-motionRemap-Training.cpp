@@ -29,7 +29,19 @@ double getTg(double shapeHeight, double shapeDepth, double Y) {
 	return (-shapeDepth * sin(M_PI * Y / shapeHeight) * M_PI / shapeHeight);
 }
 
+int guessNrmv(const CurvePtsData& input_YCurve) {
 
+	int i_c = 0;
+	double delY_delZ = 0;
+	int nr_pts = input_YCurve.y_vec.size();
+	int i_mid = (nr_pts / 2) - 1;
+
+	while ((i_c < i_mid) && delY_delZ < thresh_tan) {
+		i_c++;
+		delY_delZ = input_YCurve.y_vec[i_mid + i_c] / input_YCurve.z_vec[i_mid + i_c];
+	}
+	return i_c;
+}
 
 double NewtonSolver_fz(double z, double Depth, double zCoeff, double distShapeToEye) {
 	double val = z / Depth - cos(zCoeff * (z - distShapeToEye));
@@ -317,16 +329,11 @@ void drawProgressBar() {
 
 void drawStimulus()
 {
-	//enum Stages {stimulus_preview, prep_trial, trial_fixate_first, trial_present_first,
-	//trial_fixate_second, trial_present_second, trial_respond, break_time, exp_completed};
-
-	//draw_objEdge();
-
 
 	switch (current_stage) {
 
 	case stimulus_preview:
-		// testing texture, build vertices for curved surface
+
 		drawSurface(dist_toEye, my_verts_static, my_contour_data);
 		if (!testVisualStimuliOnly)
 			drawFingersOcclusion();
@@ -376,7 +383,8 @@ void drawGLScene()
 
 	drawStimulus();
 	drawInfo();
-	drawTaskGuide();
+	if (fingerTracking)
+		drawTaskGuide();
 
 
 	// Draw right eye view
@@ -389,7 +397,8 @@ void drawGLScene()
 
 	drawStimulus();
 	drawInfo();
-	drawTaskGuide();
+	if (fingerTracking)
+		drawTaskGuide();
 
 
 	glutSwapBuffers();
@@ -443,7 +452,7 @@ void drawInfo_calibrationMarkers(GLText curText) {
 	else
 		glColor3fv(glRed);
 	curText.draw("Index Calibration Point " + stringify< Eigen::Matrix<double, 1, 3> >(markers[calibration_I].p.transpose()));
-
+	curText.draw("free marker 24 " + stringify< Eigen::Matrix<double, 1, 3> >(markers[24].p.transpose()));
 	curText.draw(" ");
 
 	if (allVisibleThumb)
@@ -655,8 +664,8 @@ void drawInfo()
 			}
 			//text.draw("# move cnt: " + stringify<int>(move_cnt));
 			//text.draw("#reinforce_texture_disparity: " + stringify<bool>(reinforce_texture_disparity));
-			text.draw("# depth texture: " + stringify<double>(depth_text));
-			text.draw("# depth stereo: " + stringify<double>(depth_disp));
+			//text.draw("# depth texture: " + stringify<double>(depth_text));
+			//text.draw("# depth stereo: " + stringify<double>(depth_disp));
 			//text.draw("# elasped time: " + stringify<double>(ElapsedTime));
 
 			break;
@@ -674,13 +683,15 @@ void drawInfo()
 			text.draw("# current stage: " + stringify<int>(current_stage));
 			text.draw("# trial Num: " + stringify<int>(trialNum));
 
-			//text.draw("# depth texture: " + stringify<double>(depth_text));
-			//text.draw("# depth stereo: " + stringify<double>(depth_disp));
+
 			text.draw("# elasped time: " + stringify<double>(ElapsedTime));
 			text.draw("# thm to home: " + stringify<double>(dist_thm_home));
 			text.draw("# GA: " + stringify<double>(grip_aperture));
 
-
+			if (testVisualStimuliOnly) {
+				text.draw("# depth texture: " + stringify<double>(depth_text));
+				text.draw("# depth stereo: " + stringify<double>(depth_disp));
+			}
 			break;
 
 		case break_time:
@@ -731,7 +742,7 @@ void onlineTrial() {
 	case stimulus_previewMotion:
 		// monitor the time and update vertices
 		ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
-		if ((move_cnt * speed_moderator) / (4.0 * nr_mvpts_max) > 2 * mv_num) {
+		if ((move_cnt * speed_moderator) / (nr_mvpts_max) > 2 * mv_num) {
 			//if ((ElapsedTime - timestamp_mtFlow) > motionFlowTime) {		
 			current_stage = stimulus_preview;
 		}
@@ -739,7 +750,7 @@ void onlineTrial() {
 			if (ElapsedTime - last_time > updateEveryMs) {
 				last_time = ElapsedTime;
 				move_cnt++;
-				updateVerticesData(move_cnt);
+				updateVerticesData(move_cnt, nr_mvpts_max, AllTimeColorsVec_Moving);
 			}
 		}
 		break;
@@ -769,6 +780,7 @@ void onlineTrial() {
 			if ((ElapsedTime > 2 * fixateTime) && handIsReset) {
 				beepOk(21);
 				timestamp_MSEstart1 = ElapsedTime;
+				fingerTracking = true;
 				current_stage = trial_MSE_first;
 			}
 		}
@@ -780,6 +792,7 @@ void onlineTrial() {
 		if (handIsReset) {
 			attemped_MSE = false;
 			initMotionFlow();
+			fingerTracking = false;
 			current_stage = trial_viewMtFlow;
 		}
 		break;
@@ -788,17 +801,23 @@ void onlineTrial() {
 	case trial_viewMtFlow:
 		// monitor the time and update vertices
 		ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
-		if ((move_cnt * speed_moderator) / (4.0 * nr_mvpts_max) > mv_num) {
-			//if ((ElapsedTime - timestamp_mtFlow) > motionFlowTime) {
+		if ((move_cnt * speed_moderator) / (nr_mvpts_max) > 2 * mv_num) {		
+
+			if (testVisualStimuliOnly) {
+				current_stage = trial_MSE_second;
+			}
+			else {
 			motionFlowTime = ElapsedTime - timestamp_mtFlow;
 			beepOk(21);
+			fingerTracking = true;
 			current_stage = trial_MSE_second;
+			}
 		}
 		else {
 			if (ElapsedTime - last_time > updateEveryMs) {
 				last_time = ElapsedTime;
 				move_cnt++;
-				updateVerticesData(move_cnt);
+				updateVerticesData(move_cnt, nr_mvpts_max, AllTimeColorsVec_Moving);
 			}
 		}
 		break;
@@ -857,7 +876,7 @@ void advanceTrial()
 		Tex_dot_radius << "\t" <<
 		Tex_dot_separation_ratio << "\t" <<
 		speed_moderator << "\t" <<
-		rock_movement_divider << "\t" <<
+		movement_percent << "\t" <<
 		motionFlowTime << "\t" <<
 		trainingCueIsRandom
 		<< endl;
@@ -1020,6 +1039,18 @@ void handleKeypress(unsigned char key, int x, int y)
 		currentInitStep = to_GetCalibrationPoints;
 		current_stage = exp_initializing;
 		visibleInfo = true;
+		break;
+
+	case '-':
+		 if(testVisualStimuliOnly && current_stage == stimulus_preview){
+			initMotionFlow();
+			trial_timer.reset();
+			trial_timer.start();
+			last_time = 0;
+			ElapsedTime = 0;
+			current_stage = stimulus_previewMotion;
+
+		}
 		break;
 
 	case '+':
@@ -1289,12 +1320,13 @@ void scanCurve(double shapeHeight, double shapeDepth, CurveYLMap& output_curve_y
 
 }
 
-void generateTexDots(float TM_X, float TM_Y, float dotDensity, float dotRadius, float dotSeparationRatio, TextureDotsData& outputTexDots) {
+void generateTexDots_hybrid(float TM_X, float TM_Y, float dotDensity, float dotRadius, float dotSeparationRatio, int nr_X_Lattice, float dotJitterScale_Lattice, TextureDotsData& outputTexDots) {
 
 	outputTexDots = {};
 
 	outputTexDots.TexMapSize = Vec2{ TM_X, TM_Y };
 	outputTexDots.Radius = dotRadius;
+	outputTexDots.margin_y = R_blur_fac * dotRadius;
 
 	std::uniform_real_distribution<float> dist(0.f, 1.f);
 
@@ -1304,13 +1336,34 @@ void generateTexDots(float TM_X, float TM_Y, float dotDensity, float dotRadius, 
 	int num_dot = TM_X * TM_Y * dotDensity;
 
 	float dot_separation = dotSeparationRatio * 2 * dotRadius;
+	float dotSeparationRatio_adjust = dotSeparationRatio;
 
 	int genTexAttemps = 0;
 	int num_runs = 0;
-	int nr_D_L = 0;
-	int nr_D_H = 0;
+	int change_count = 0;
 
-	for (int i_dot = 0; i_dot < num_dot; i_dot++) {
+	int nr_X = nr_X_Lattice;
+	int nr_Y = floor(TM_Y * nr_X / TM_X);
+
+	if (nr_Y % 2 == 0) {
+		nr_Y++;
+	}
+
+	float lat_step_x = TM_X / (float)nr_X;
+	float lat_step_y = TM_Y / (float)nr_Y;
+
+	for (int j = 0; j < nr_Y; j++) {
+		for (int i = 0; i < nr_X; i++) {
+			float rx = dist(rng);
+			float ry = dist(rng);
+			float cx_lat = ((rx - 0.5) * dotJitterScale_Lattice + i + 0.5) * lat_step_x;
+			float cy_lat = ((ry - 0.5) * dotJitterScale_Lattice + j + 0.5) * lat_step_y;
+
+			dc_vec.push_back(Vec2{ cx_lat, cy_lat });
+		}
+	}
+
+	for (int i_dot = nr_X * nr_Y; i_dot < num_dot; i_dot++) {
 
 		num_runs++;
 
@@ -1318,7 +1371,7 @@ void generateTexDots(float TM_X, float TM_Y, float dotDensity, float dotRadius, 
 
 			genTexAttemps++;
 
-			if (genTexAttemps > 4) {
+			if (genTexAttemps > 10000) {
 
 				cout << "text depth: " << depth_text << endl;
 				cout << "disp depth: " << depth_disp << endl;
@@ -1328,7 +1381,26 @@ void generateTexDots(float TM_X, float TM_Y, float dotDensity, float dotRadius, 
 			else {
 				num_runs = 0;
 				dc_vec.clear();
-				i_dot = 0;
+
+				for (int j = 0; j < nr_Y; j++) {
+					for (int i = 0; i < nr_X; i++) {
+
+						float rx = dist(rng);
+						float ry = dist(rng);
+						float cx_lat = ((rx - 0.5) * dotJitterScale_Lattice + i + 0.5) * lat_step_x;
+						float cy_lat = ((ry - 0.5) * dotJitterScale_Lattice + j + 0.5) * lat_step_y;
+
+						dc_vec.push_back(Vec2{ cx_lat, cy_lat });
+					}
+				}
+
+				i_dot = nr_X * nr_Y;
+
+				change_count = floor(genTexAttemps / (float)50);
+				dotSeparationRatio_adjust = dotSeparationRatio_adjust - 0.00001 * (float)change_count * (float)num_dot;
+				//dotSeparationRatio_adjust = dotSeparationRatio_adjust - 0.000005 * (float)num_dot;
+				dot_separation = dotSeparationRatio_adjust * 2 * dotRadius;
+
 			}
 		}
 
@@ -1356,18 +1428,8 @@ void generateTexDots(float TM_X, float TM_Y, float dotDensity, float dotRadius, 
 
 		// if not intersect, add this circle to the circles vector
 		dc_vec.push_back(Vec2{ cx, cy });
-
-		if (cy < dotSeparationRatio * dotRadius) {
-
-			dc_vec.push_back(Vec2{ cx, cy + TM_Y });
-			nr_D_L++;
-		}
-		if (cy > (TM_Y - dotSeparationRatio * dotRadius)) {
-			dc_vec.push_back(Vec2{ cx, cy - TM_Y });
-			nr_D_H++;
-		}
-
 	}
+
 
 	// sort the dot by their y
 	int n_dots = dc_vec.size();
@@ -1381,17 +1443,15 @@ void generateTexDots(float TM_X, float TM_Y, float dotDensity, float dotRadius, 
 	std::sort(sortedDC_ind_vec.begin(), sortedDC_ind_vec.end(), [&](int i, int j) {return dc_y_vec[i] < dc_y_vec[j]; });
 
 	// fill in TexDots dot center vectors in order of low y to high y
-
+	float x_offset = TM_X / 2.;
+	float y_offset = TM_Y / 2.;
 	for (int k = 0; k < n_dots; k++) {
-		outputTexDots.dot_center_vec.push_back(dc_vec[sortedDC_ind_vec[k]]);
+		Vec2 dc_temp = dc_vec[sortedDC_ind_vec[k]];
+		outputTexDots.dot_center_vec.push_back(Vec2{ dc_temp.x - x_offset, dc_temp.y - y_offset });
 	}
 
-	outputTexDots.nr_D_H = nr_D_H;
-	outputTexDots.nr_D_L = nr_D_L;
-	outputTexDots.nr_S = num_dot - nr_D_H - nr_D_L;
-	outputTexDots.Radius_y_max = dotSeparationRatio * dotRadius;
-
 }
+
 
 
 void sampleTexDotsResize(const CurveYLMap& CurveYLMap_origin, const CurveYLMap& CurveYLMap_proj, double distShapeToEye, ProjTexDots_ResizeMap& output_RszMap) {
@@ -1400,31 +1460,31 @@ void sampleTexDotsResize(const CurveYLMap& CurveYLMap_origin, const CurveYLMap& 
 
 	double depth_origin = CurveYLMap_origin.curve_depth;
 	output_RszMap.depth_origin = depth_origin;
-	double depth = CurveYLMap_proj.curve_depth;
-	output_RszMap.depth_proj = depth;
+	double depth_proj = CurveYLMap_proj.curve_depth;
+	output_RszMap.depth_proj = depth_proj;
 
 	double height = CurveYLMap_proj.curve_height;
 	double ylmap_stpsz = CurveYLMap_origin.step_size;
 	double y_min = CurveYLMap_origin.y_vec.front();
 
+	// del_l is from projected curve
 	double l_half = CurveYLMap_proj.l_vec.back() / 2.;
-	double del_l = 0.2;
 	int nr_half = l_half / del_l;
 	double del_l_adjust = l_half / nr_half;
 	double del_l_twice = 2 * del_l_adjust;
 
 	int i_start = 0;
 	double l_o_prev = 0;
-	double RRsz_y_max = 0;
+
 	// k = 0
-	output_RszMap.l_vec.push_back(0);
-	output_RszMap.R_resize_vec.push_back(Vec2{ 1, 0 }); // y is a filler
+	//output_RszMap.L_proj_vec.push_back(0 - l_half);
+	output_RszMap.R_resize_vec.push_back(Vec2{ 1, 0 }); // the second element or the y_factor is a filler
 
 	// k = 1
 	double l = 1 * del_l_adjust;
 	double y = mapLtoY(CurveYLMap_proj, l, i_start);
 	i_start = (y - y_min) / ylmap_stpsz;
-	double z = getZ(height, depth, y);
+	double z = getZ(height, depth_proj, y);
 	double z_o = SolveForZ_projected(height, depth_origin, distShapeToEye, y, z);
 	double w = (z_o - distShapeToEye) / (z - distShapeToEye);
 	double y_o = w * y;
@@ -1436,24 +1496,24 @@ void sampleTexDotsResize(const CurveYLMap& CurveYLMap_origin, const CurveYLMap& 
 		double l_next = (k + 1) * del_l_adjust;
 		double y_next = mapLtoY(CurveYLMap_proj, l_next, i_start);
 		i_start = (y_next - y_min) / ylmap_stpsz;
-		double z_next = getZ(height, depth, y_next);
+		double z_next = getZ(height, depth_proj, y_next);
 		double z_o_next = SolveForZ_projected(height, depth_origin, distShapeToEye, y_next, z_next);
 		double w_next = (z_o_next - distShapeToEye) / (z_next - distShapeToEye);
 		double y_o_next = w_next * y_next;
 		double l_o_next = mapYtoL(CurveYLMap_origin, y_o_next);
 
-		double RRsz_y = del_l_twice / (l_o_next - l_o_prev);
+		float RRsz_x = 1. / w;
+		float RRsz_y = del_l_twice / (l_o_next - l_o_prev); // (l_next - l_prev) on projected curve : (l_next - l_prev) on original curve
 
-		output_RszMap.l_vec.push_back(l);
-		output_RszMap.R_resize_vec.push_back(Vec2{ (float)(1 / w), (float)RRsz_y });
+		//output_RszMap.L_proj_vec.push_back(l - l_half);
+		output_RszMap.R_resize_vec.push_back(Vec2{ RRsz_x, RRsz_y });
 
 		l_o_prev = l_o;
 		l_o = l_o_next;
 		l = l_next;
 		w = w_next;
 
-		if (RRsz_y > RRsz_y_max)
-			RRsz_y_max = RRsz_y;
+
 	}
 
 	// correct the filler at 0
@@ -1463,102 +1523,103 @@ void sampleTexDotsResize(const CurveYLMap& CurveYLMap_origin, const CurveYLMap& 
 	for (int k = (nr_half + 1); k < (2 * nr_half + 1); k++) {
 
 		l = k * del_l_adjust;
-		output_RszMap.l_vec.push_back(l);
+		//output_RszMap.L_proj_vec.push_back(l - l_half);
 		output_RszMap.R_resize_vec.push_back(output_RszMap.R_resize_vec[2 * nr_half - k]);
 
 	}
 
-	output_RszMap.del_l = del_l_adjust;
-	output_RszMap.R_Rsz_y_max = RRsz_y_max;
+	output_RszMap.del_l_proj = del_l_adjust;
 
 }
 
 
 void projectTexDots(double distShapeToEye, const CurveYLMap& YLMap_origin, const CurveYLMap& YLMap_proj, const TextureDotsData& input_TexDots_origin, const ProjTexDots_ResizeMap& RszMap_proj, TextureDotsData& output_TexDots_proj) {
-
 	output_TexDots_proj = input_TexDots_origin;
 	output_TexDots_proj.dot_center_vec.clear();
 	output_TexDots_proj.R_resize_vec.clear();
 
-	float y_border_o = input_TexDots_origin.TexMapSize.y;
-	float y_border_p = YLMap_proj.l_vec.back();
-	output_TexDots_proj.TexMapSize.y = y_border_p;
 
 
-	float x_offset = input_TexDots_origin.TexMapSize.x / 2.;
+	float TX_origin = input_TexDots_origin.TexMapSize.x;
+	float TY_origin = input_TexDots_origin.TexMapSize.y;
+
+	float l_origin = YLMap_origin.l_vec.back();
+	float l_proj = YLMap_proj.l_vec.back();
 
 	double height_origin = YLMap_origin.curve_height;
 	double depth_origin = YLMap_origin.curve_depth;
 	double height_proj = YLMap_proj.curve_height;
 	double depth_proj = YLMap_proj.curve_depth;
 
+
+
+	double step_l_RszMap = RszMap_proj.del_l_proj;
+	float Ry_resize_border = RszMap_proj.R_resize_vec[0].y;
+
+	output_TexDots_proj.Radius = input_TexDots_origin.Radius;
+	output_TexDots_proj.TexMapSize = Vec2{ TX_origin,  (TY_origin - l_origin) * Ry_resize_border + l_proj };
+
+	float margin_y_proj = input_TexDots_origin.margin_y;
+	if (Ry_resize_border > 1)
+		margin_y_proj = margin_y_proj * Ry_resize_border;
+	output_TexDots_proj.margin_y = margin_y_proj;
+
+	vector<int> dot_InBdr_vec;
 	int nr = input_TexDots_origin.dot_center_vec.size();
-	int nr_D_L = input_TexDots_origin.nr_D_L;
-	int nr_D_H = input_TexDots_origin.nr_D_H;
-	int nr_S = input_TexDots_origin.nr_S;
+	for (int i_dot = 0; i_dot < nr; i_dot++) {
+		if (input_TexDots_origin.dot_center_vec[i_dot].y >= (-l_origin / 2.) && input_TexDots_origin.dot_center_vec[i_dot].y <= (l_origin / 2.)) {
+			dot_InBdr_vec.push_back(i_dot);
+		}
+	}
 
-	double step_l_RszMap = RszMap_proj.del_l;
-
-
-	vector<Vec2> dc_vec_InBdr;
-	vector<Vec2> RRsz_vec_InBdr;
-	// these are dots that are inside the border
-
-	for (int i_d = nr_D_H; i_d < nr - nr_D_L; i_d++) {
+	for (int i_d = 0; i_d < dot_InBdr_vec[0]; i_d++) {
 
 		Vec2 dc_o = input_TexDots_origin.dot_center_vec[i_d];
+		Vec2 dc_p = dc_o;
+		dc_p.y = -l_proj / 2. + Ry_resize_border * (dc_o.y - (-l_origin / 2.));
+		output_TexDots_proj.dot_center_vec.push_back(dc_p);
+		output_TexDots_proj.R_resize_vec.push_back(RszMap_proj.R_resize_vec[0]);
+	}
 
-		float l_o = dc_o.y;
+	for (int i_d = dot_InBdr_vec[0]; i_d < dot_InBdr_vec.back() + 1; i_d++) {
+		Vec2 dc_o = input_TexDots_origin.dot_center_vec[i_d];
+
+		float l_o = dc_o.y - (-l_origin / 2.);
 		float y_min = YLMap_proj.y_vec.front();
 
-		// step 1: place the dot from TM to 3Dsurface, by finding the y first 
+		// step 1: place the dot from TM to 3Dsurface, by finding the y first
 		// known l -> find y
 
-		double x_o = dc_o.x - x_offset;
+		double x_o = dc_o.x;
 		double y_o = mapLtoY(YLMap_origin, l_o);
 
 		double z_o = getZ(height_origin, depth_origin, y_o);
-		//input_TexDots_origin.dc_vec.push_back(Vector3f(x_o, y_o, z_o));
-
 
 		// step 2: project the dot to the new suface
 		Vector3d proj_dot = projectPoint(height_proj, depth_proj, distShapeToEye, Vector3d(x_o, y_o, z_o));
-		//output_TexDots_proj.dc_vec.push_back(Vector3f(proj_dot));
 
 		double x_p = proj_dot.x();
 		double y_p = proj_dot.y();
 		double z_p = proj_dot.z();
 
 		double l_p = mapYtoL(YLMap_proj, y_p);
-		dc_vec_InBdr.push_back(Vec2{ (float)x_p + x_offset, (float)l_p });
+		output_TexDots_proj.dot_center_vec.push_back(Vec2{ (float)x_p, (float)(l_p - l_proj / 2.) });
 
 		// look up Resize factors on map
 		int i_c = round(l_p / step_l_RszMap);
-		RRsz_vec_InBdr.push_back(RszMap_proj.R_resize_vec[i_c]);
+		output_TexDots_proj.R_resize_vec.push_back(RszMap_proj.R_resize_vec[i_c]);
 	}
 
-	int nr_dots_inBdr = dc_vec_InBdr.size();
-	// project dots from the upper area of TM to below TexMap for periodic texture
-	for (int k = (nr_dots_inBdr - nr_D_H); k < nr_dots_inBdr; k++) {
-		Vec2 dc_temp = dc_vec_InBdr[k];
-		output_TexDots_proj.dot_center_vec.push_back(Vec2{ dc_temp.x, dc_temp.y - y_border_p });
-		output_TexDots_proj.R_resize_vec.push_back(RRsz_vec_InBdr[k]);
+
+	for (int i_d = dot_InBdr_vec.back() + 1; i_d < nr; i_d++) {
+
+		Vec2 dc_o = input_TexDots_origin.dot_center_vec[i_d];
+		Vec2 dc_p = dc_o;
+		dc_p.y = l_proj / 2. + Ry_resize_border * (dc_o.y - l_origin / 2.);
+		output_TexDots_proj.dot_center_vec.push_back(dc_p);
+		output_TexDots_proj.R_resize_vec.push_back(RszMap_proj.R_resize_vec[0]);
 	}
 
-	// area insie TM
-	for (int k = 0; k < nr_dots_inBdr; k++) {
-		output_TexDots_proj.dot_center_vec.push_back(dc_vec_InBdr[k]);
-		output_TexDots_proj.R_resize_vec.push_back(RRsz_vec_InBdr[k]);
-	}
-
-	// project dots from the lower area of TM to above TexMap for periodic texture
-	for (int k = 0; k < nr_D_L; k++) {
-		Vec2 dc_temp = dc_vec_InBdr[k];
-		output_TexDots_proj.dot_center_vec.push_back(Vec2{ dc_temp.x, dc_temp.y + y_border_p });
-		output_TexDots_proj.R_resize_vec.push_back(RRsz_vec_InBdr[k]);
-	}
-
-	output_TexDots_proj.Radius_y_max = input_TexDots_origin.Radius_y_max * RszMap_proj.R_Rsz_y_max;
 
 }
 
@@ -1711,6 +1772,290 @@ void buildContour(double ContourWidth, const CurvePtsData& dispYCurve, const Cur
 }
 
 
+
+void buildAllColorsVec_TexOnText(double shapeWidth, double distShapeToEye, int PtsMoveMax, const CurvePtsData& textYCurve, const VerticesData& vertices_data, const TextureDotsData& TexDotsOnText, AllTimeColorsVec& colorsVecs) {
+
+	colorsVecs.colors_vec_allTimeVec.clear();
+
+	vector<GLfloat> temp_colors_vec;
+	temp_colors_vec = vertices_data.colors_vec;
+	colorsVecs.colors_vec_allTimeVec.push_back(temp_colors_vec);
+
+	int nr_col_I = 3 * nr_points_width;
+	int nr_J = temp_colors_vec.size() / nr_col_I;
+
+	double stpsz_I = shapeWidth / (nr_points_width - 1);
+	int nr_dots = TexDotsOnText.dot_center_vec.size();
+	float R = TexDotsOnText.Radius;
+	float L_start = -textYCurve.l_vec.back() / 2.;
+	float l_margin = TexDotsOnText.margin_y;
+
+	float x_offset = TexDotsOnText.TexMapSize.x / 2.;
+
+	// the 1st quarter
+	for (int i_m = 1; i_m < PtsMoveMax + 1; i_m++) {
+
+		temp_colors_vec.erase(temp_colors_vec.begin(), temp_colors_vec.begin() + nr_col_I);
+		vector<GLfloat> col_vec_newRow;
+
+		float vertex_col = 1.0f;
+
+		int TexDot_Ind_L = 0;
+		int TexDot_Ind_H = 0;
+		vector<Vec2> nearTexDots_dc_vec;
+
+		double L_t = L_start + textYCurve.l_vec.back() + textYCurve.l_vec[i_m];
+
+		while ((TexDotsOnText.dot_center_vec[TexDot_Ind_L].y < ((float)L_t - l_margin)) && TexDot_Ind_L < (nr_dots - 1)) {
+			TexDot_Ind_L++;
+		}
+		TexDot_Ind_H = TexDot_Ind_L;
+		while ((TexDotsOnText.dot_center_vec[TexDot_Ind_H].y < ((float)L_t + l_margin)) && TexDot_Ind_H < (nr_dots - 1)) {
+			TexDot_Ind_H++;
+		}
+		nearTexDots_dc_vec.clear();
+		for (int k = TexDot_Ind_L; k < TexDot_Ind_H + 1; k++) {
+			nearTexDots_dc_vec.push_back(TexDotsOnText.dot_center_vec[k]);
+		}
+		int nr_dots_near = nearTexDots_dc_vec.size();
+
+
+		for (int ii = 0; ii < nr_points_width; ii++) {
+
+			double pt_x = stpsz_I * ii - x_offset;
+			double pt_y = L_t;
+			vertex_col = 1.0f;
+
+			for (int k = 0; k < nr_dots_near; k++) {
+
+				double pt_val = sqrt((pt_x - nearTexDots_dc_vec[k].x) * (pt_x - nearTexDots_dc_vec[k].x) +
+					(pt_y - nearTexDots_dc_vec[k].y) * (pt_y - nearTexDots_dc_vec[k].y));
+
+				if (pt_val < R_blur_fac * R) {
+					double vertex_col_tentative = blurEdge(drop_off_rate, pt_val, R_blur_fac * R, 0.0, 1.0);
+					vertex_col = float(vertex_col_tentative);
+					break;
+				}
+			}
+			col_vec_newRow.push_back(vertex_col_min + vertex_col * (vertex_col_max - vertex_col_min));
+			col_vec_newRow.push_back(0);
+			col_vec_newRow.push_back(0);
+		}
+		temp_colors_vec.insert(temp_colors_vec.end(), col_vec_newRow.begin(), col_vec_newRow.end());
+		colorsVecs.colors_vec_allTimeVec.push_back(temp_colors_vec);
+	}
+
+	// the 2nd quarter
+	for (int i_m = PtsMoveMax + 1; i_m < 2 * PtsMoveMax + 1; i_m++) {
+		colorsVecs.colors_vec_allTimeVec.push_back(colorsVecs.colors_vec_allTimeVec[2 * PtsMoveMax - i_m]);
+	}
+
+	// the 3rd quarter
+	temp_colors_vec = vertices_data.colors_vec;
+	for (int i_m = 1; i_m < PtsMoveMax + 1; i_m++) {
+
+		temp_colors_vec.erase(temp_colors_vec.end() - nr_col_I, temp_colors_vec.end());
+		vector<GLfloat> col_vec_newRow;
+
+		float vertex_col = 1.0f;
+
+		int TexDot_Ind_L = 0;
+		int TexDot_Ind_H = 0;
+		vector<Vec2> nearTexDots_dc_vec;
+
+		double L_t = L_start - textYCurve.l_vec[i_m];
+
+		while ((TexDotsOnText.dot_center_vec[TexDot_Ind_L].y < ((float)L_t - l_margin)) && TexDot_Ind_L < (nr_dots - 1)) {
+			TexDot_Ind_L++;
+		}
+		TexDot_Ind_H = TexDot_Ind_L;
+		while ((TexDotsOnText.dot_center_vec[TexDot_Ind_H].y < ((float)L_t + l_margin)) && TexDot_Ind_H < (nr_dots - 1)) {
+			TexDot_Ind_H++;
+		}
+		nearTexDots_dc_vec.clear();
+		for (int k = TexDot_Ind_L; k < TexDot_Ind_H + 1; k++) {
+			nearTexDots_dc_vec.push_back(TexDotsOnText.dot_center_vec[k]);
+		}
+		int nr_dots_near = nearTexDots_dc_vec.size();
+
+
+		for (int ii = 0; ii < nr_points_width; ii++) {
+
+			double pt_x = stpsz_I * ii - x_offset;
+			double pt_y = L_t;
+			vertex_col = 1.0f;
+
+			for (int k = 0; k < nr_dots_near; k++) {
+
+				double pt_val = sqrt((pt_x - nearTexDots_dc_vec[k].x) * (pt_x - nearTexDots_dc_vec[k].x) +
+					(pt_y - nearTexDots_dc_vec[k].y) * (pt_y - nearTexDots_dc_vec[k].y));
+
+				if (pt_val < R_blur_fac * R) {
+					double vertex_col_tentative = blurEdge(drop_off_rate, pt_val, R_blur_fac * R, 0.0, 1.0);
+					vertex_col = float(vertex_col_tentative);
+					break;
+				}
+			}
+			col_vec_newRow.push_back(vertex_col_min + vertex_col * (vertex_col_max - vertex_col_min));
+			col_vec_newRow.push_back(0);
+			col_vec_newRow.push_back(0);
+		}
+
+		temp_colors_vec.insert(temp_colors_vec.begin(), col_vec_newRow.begin(), col_vec_newRow.end());
+		colorsVecs.colors_vec_allTimeVec.push_back(temp_colors_vec);
+	}
+
+	// the 4th quarter
+	for (int i_m = 1; i_m < PtsMoveMax; i_m++) {
+		colorsVecs.colors_vec_allTimeVec.push_back(colorsVecs.colors_vec_allTimeVec[3 * PtsMoveMax - i_m]);
+	}
+}
+
+void buildAllColorsVec_TexOnDisp(double shapeWidth, double distShapeToEye, int PtsMoveMax, const CurvePtsData& dispYCurve, const VerticesData& vertices_data, const TextureDotsData& TexDotsOnDisp, AllTimeColorsVec& colorsVecs) {
+
+	colorsVecs.colors_vec_allTimeVec.clear();
+
+	vector<GLfloat> temp_colors_vec;
+	temp_colors_vec = vertices_data.colors_vec;
+	colorsVecs.colors_vec_allTimeVec.push_back(temp_colors_vec);
+
+	int nr_col_I = 3 * nr_points_width;
+	int nr_J = temp_colors_vec.size() / nr_col_I;
+
+	double stpsz_I = shapeWidth / (nr_points_width - 1);
+	int nr_dots = TexDotsOnDisp.dot_center_vec.size();
+	float R = TexDotsOnDisp.Radius;
+	float L_start = -dispYCurve.l_vec.back() / 2.;
+	float l_margin = TexDotsOnDisp.margin_y;
+
+	float x_offset = TexDotsOnDisp.TexMapSize.x / 2.;
+
+	// the 1st quarter
+	for (int i_m = 1; i_m < PtsMoveMax + 1; i_m++) {
+
+		temp_colors_vec.erase(temp_colors_vec.begin(), temp_colors_vec.begin() + nr_col_I);
+		vector<GLfloat> col_vec_newRow;
+
+		float vertex_col = 1.0f;
+
+		int TexDot_Ind_L = 0;
+		int TexDot_Ind_H = 0;
+		vector<Vec2> nearTexDots_dc_vec;
+		vector<Vec2> nearTexDots_Rsz_vec;
+
+		double L_d = L_start + dispYCurve.l_vec.back() + dispYCurve.l_vec[i_m];
+
+		while ((TexDotsOnDisp.dot_center_vec[TexDot_Ind_L].y < ((float)L_d - l_margin)) && TexDot_Ind_L < (nr_dots - 1)) {
+			TexDot_Ind_L++;
+		}
+		TexDot_Ind_H = TexDot_Ind_L;
+		while ((TexDotsOnDisp.dot_center_vec[TexDot_Ind_H].y < ((float)L_d + l_margin)) && TexDot_Ind_H < (nr_dots - 1)) {
+			TexDot_Ind_H++;
+		}
+		nearTexDots_dc_vec.clear();
+		for (int k = TexDot_Ind_L; k < TexDot_Ind_H + 1; k++) {
+			nearTexDots_dc_vec.push_back(TexDotsOnDisp.dot_center_vec[k]);
+			nearTexDots_Rsz_vec.push_back(TexDotsOnDisp.R_resize_vec[k]);
+		}
+		int nr_dots_near = nearTexDots_dc_vec.size();
+
+
+		for (int ii = 0; ii < nr_points_width; ii++) {
+
+			double pt_x = stpsz_I * ii - x_offset;
+			double pt_y = L_d;
+			vertex_col = 1.0f;
+
+			for (int k = 0; k < nr_dots_near; k++) {
+
+				double pt_val_sq = (pt_x - nearTexDots_dc_vec[k].x) * (pt_x - nearTexDots_dc_vec[k].x) / (nearTexDots_Rsz_vec[k].x * nearTexDots_Rsz_vec[k].x) +
+					(pt_y - nearTexDots_dc_vec[k].y) * (pt_y - nearTexDots_dc_vec[k].y) / (nearTexDots_Rsz_vec[k].y * nearTexDots_Rsz_vec[k].y);
+				double pt_val = sqrt(pt_val_sq);
+
+				if (pt_val < R_blur_fac * R) {
+					double vertex_col_tentative = blurEdge(drop_off_rate, pt_val, R_blur_fac * R, 0.0, 1.0);
+					vertex_col = float(vertex_col_tentative);
+					break;
+				}
+			}
+			col_vec_newRow.push_back(vertex_col_min + vertex_col * (vertex_col_max - vertex_col_min));
+			col_vec_newRow.push_back(0);
+			col_vec_newRow.push_back(0);
+		}
+		temp_colors_vec.insert(temp_colors_vec.end(), col_vec_newRow.begin(), col_vec_newRow.end());
+		colorsVecs.colors_vec_allTimeVec.push_back(temp_colors_vec);
+	}
+
+	// the 2nd quarter
+	for (int i_m = PtsMoveMax + 1; i_m < 2 * PtsMoveMax + 1; i_m++) {
+		colorsVecs.colors_vec_allTimeVec.push_back(colorsVecs.colors_vec_allTimeVec[2 * PtsMoveMax - i_m]);
+	}
+
+	// the 3rd quarter
+	temp_colors_vec = vertices_data.colors_vec;
+	for (int i_m = 1; i_m < PtsMoveMax + 1; i_m++) {
+
+		temp_colors_vec.erase(temp_colors_vec.end() - nr_col_I, temp_colors_vec.end());
+		vector<GLfloat> col_vec_newRow;
+
+		float vertex_col = 1.0f;
+
+		int TexDot_Ind_L = 0;
+		int TexDot_Ind_H = 0;
+		vector<Vec2> nearTexDots_dc_vec;
+		vector<Vec2> nearTexDots_Rsz_vec;
+
+		double L_d = L_start - dispYCurve.l_vec[i_m];
+
+		while ((TexDotsOnDisp.dot_center_vec[TexDot_Ind_L].y < ((float)L_d - l_margin)) && TexDot_Ind_L < (nr_dots - 1)) {
+			TexDot_Ind_L++;
+		}
+		TexDot_Ind_H = TexDot_Ind_L;
+		while ((TexDotsOnDisp.dot_center_vec[TexDot_Ind_H].y < ((float)L_d + l_margin)) && TexDot_Ind_H < (nr_dots - 1)) {
+			TexDot_Ind_H++;
+		}
+		nearTexDots_dc_vec.clear();
+		nearTexDots_Rsz_vec.clear();
+		for (int k = TexDot_Ind_L; k < TexDot_Ind_H + 1; k++) {
+			nearTexDots_dc_vec.push_back(TexDotsOnDisp.dot_center_vec[k]);
+			nearTexDots_Rsz_vec.push_back(TexDotsOnDisp.R_resize_vec[k]);
+		}
+		int nr_dots_near = nearTexDots_dc_vec.size();
+
+
+		for (int ii = 0; ii < nr_points_width; ii++) {
+
+			double pt_x = stpsz_I * ii - x_offset;
+			double pt_y = L_d;
+			vertex_col = 1.0f;
+
+			for (int k = 0; k < nr_dots_near; k++) {
+
+				double pt_val_sq = (pt_x - nearTexDots_dc_vec[k].x) * (pt_x - nearTexDots_dc_vec[k].x) / (nearTexDots_Rsz_vec[k].x * nearTexDots_Rsz_vec[k].x) +
+					(pt_y - nearTexDots_dc_vec[k].y) * (pt_y - nearTexDots_dc_vec[k].y) / (nearTexDots_Rsz_vec[k].y * nearTexDots_Rsz_vec[k].y);
+				double pt_val = sqrt(pt_val_sq);
+
+				if (pt_val < R_blur_fac * R) {
+					double vertex_col_tentative = blurEdge(drop_off_rate, pt_val, R_blur_fac * R, 0.0, 1.0);
+					vertex_col = float(vertex_col_tentative);
+					break;
+				}
+			}
+			col_vec_newRow.push_back(vertex_col_min + vertex_col * (vertex_col_max - vertex_col_min));
+			col_vec_newRow.push_back(0);
+			col_vec_newRow.push_back(0);
+		}
+
+		temp_colors_vec.insert(temp_colors_vec.begin(), col_vec_newRow.begin(), col_vec_newRow.end());
+		colorsVecs.colors_vec_allTimeVec.push_back(temp_colors_vec);
+	}
+
+	// the 4th quarter
+	for (int i_m = 1; i_m < PtsMoveMax; i_m++) {
+		colorsVecs.colors_vec_allTimeVec.push_back(colorsVecs.colors_vec_allTimeVec[3 * PtsMoveMax - i_m]);
+	}
+}
+
 void buildAllColorsVec(const VerticesData& vertices_data, AllTimeColorsVec& colorsVecs) {
 
 	colorsVecs.colors_vec_allTimeVec.clear();
@@ -1733,25 +2078,14 @@ void buildAllColorsVec(const VerticesData& vertices_data, AllTimeColorsVec& colo
 
 }
 
+void updateVerticesData(int timeID, int input_nr_mvpts_MAX, const AllTimeColorsVec& colorsVecs) {
 
-void updateVerticesData(int timeID) {
-
-	int movementID = int(timeID * speed_moderator) % (4 * nr_mvpts_max);
-
-	if (movementID <= nr_mvpts_max) {
-		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[movementID];
-	}
-	else if (movementID <= 2 * nr_mvpts_max) { // 20 - 40
-		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(2 * nr_mvpts_max - movementID)];
-	}
-	else if (movementID <= 3 * nr_mvpts_max) { // 40 - 60
-		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(nr_points_height - 1) + (2 * nr_mvpts_max - movementID)];
-	}
-	else { // 60 - 80
-		my_verts_moving.colors_vec = AllTimeColorsVec_Moving.colors_vec_allTimeVec[(nr_points_height - 1) - (4 * nr_mvpts_max - movementID)];
-	}
-
+	int movementID = int(timeID * speed_moderator) % (4 * input_nr_mvpts_MAX);
+	my_verts_moving.colors_vec = colorsVecs.colors_vec_allTimeVec[movementID];
+	float progress = (float)movementID / (float)(4 * input_nr_mvpts_MAX);
+	//lightDir_z = lightDir_z_default - lightDir_z_del * sin(progress * 2 * M_PI);
 }
+
 
 
 void buildSurface_TexOnText(double shapeWidth, const CurvePtsData& dispYCurve, const CurvePtsData& textYCurve, double distShapeToEye, TextureDotsData& TexDotsOnText, VerticesData& vertices_data) {
@@ -1763,12 +2097,14 @@ void buildSurface_TexOnText(double shapeWidth, const CurvePtsData& dispYCurve, c
 	double stpsz_I = shapeWidth / (nr_points_width - 1);
 	double height = textYCurve.curve_height;
 	double depth_text = textYCurve.curve_depth;
+	float x_offset = TexDotsOnText.TexMapSize.x / 2;
 
 	// for texture colors
-	float x_offset = shapeWidth / 2;
 	float vertex_col = 1.0f;
 	int nr_dots = TexDotsOnText.dot_center_vec.size();
 	float R = TexDotsOnText.Radius;
+	float L_start = -textYCurve.l_vec.back() / 2.;
+	float l_margin = TexDotsOnText.margin_y;
 
 	int TexDot_Ind_L = 0;
 	int TexDot_Ind_H = 0;
@@ -1787,16 +2123,16 @@ void buildSurface_TexOnText(double shapeWidth, const CurvePtsData& dispYCurve, c
 		float w = (distShapeToEye - z_d) / (distShapeToEye - z_t);
 		float x_d;
 
-		double l_t = textYCurve.l_vec[jj];
+		double L_t = textYCurve.l_vec[jj] + L_start;
 
-		// find the dots that are near l_t
-		while ((TexDotsOnText.dot_center_vec[TexDot_Ind_L].y < ((float)l_t - 1.5 * R)) && TexDot_Ind_L < (nr_dots - 1)) {
+		// find the dots that are near L_t
+		while (((TexDotsOnText.dot_center_vec[TexDot_Ind_L].y) < ((float)L_t - l_margin)) && TexDot_Ind_L < (nr_dots - 1)) {
 			TexDot_Ind_L++;
 		}
 
 
 		TexDot_Ind_H = TexDot_Ind_L;
-		while ((TexDotsOnText.dot_center_vec[TexDot_Ind_H].y < ((float)l_t + 1.5 * R)) && TexDot_Ind_H < (nr_dots - 1)) {
+		while (((TexDotsOnText.dot_center_vec[TexDot_Ind_H].y) < ((float)L_t + l_margin)) && TexDot_Ind_H < (nr_dots - 1)) {
 			TexDot_Ind_H++;
 		}
 
@@ -1809,8 +2145,8 @@ void buildSurface_TexOnText(double shapeWidth, const CurvePtsData& dispYCurve, c
 
 		for (int ii = 0; ii < nr_points_width; ii++) {
 
-			double pt_x = stpsz_I * ii;
-			double pt_y = l_t;
+			double pt_x = stpsz_I * ii - x_offset;
+			double pt_y = L_t;
 			vertex_col = 1.0f;
 
 
@@ -1827,7 +2163,7 @@ void buildSurface_TexOnText(double shapeWidth, const CurvePtsData& dispYCurve, c
 				}
 			}
 
-			x_d = w * (pt_x - x_offset);
+			x_d = w * pt_x;
 
 
 			vertices_data.vertices_vec.push_back(x_d);
@@ -1839,7 +2175,7 @@ void buildSurface_TexOnText(double shapeWidth, const CurvePtsData& dispYCurve, c
 			vertices_data.light_normals_vec.push_back(1);
 
 
-			vertices_data.colors_vec.push_back(vertex_col);
+			vertices_data.colors_vec.push_back(vertex_col_min + vertex_col * (vertex_col_max - vertex_col_min));
 			vertices_data.colors_vec.push_back(0);
 			vertices_data.colors_vec.push_back(0);
 
@@ -1871,13 +2207,14 @@ void buildSurface_TexOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, c
 	double stpsz_I = shapeWidth / (nr_points_width - 1);
 	double height = textYCurve.curve_height;
 	double depth_text = textYCurve.curve_depth;
+
 	// for texture colors
-	float x_offset = shapeWidth / 2;
+	float x_offset = TexDotsOnDisp.TexMapSize.x / 2;
 	double vertex_col = 1.0f;
 	int nr_dots = TexDotsOnDisp.dot_center_vec.size();
 	float R = TexDotsOnDisp.Radius;
-	float R_sq = R * R;
-	float R_y_max = TexDotsOnDisp.Radius_y_max;
+	float L_start = -dispYCurve.l_vec.back() / 2.;
+	float l_margin = TexDotsOnDisp.margin_y;
 
 	int TexDot_Ind_L = 0;
 	int TexDot_Ind_H = 0;
@@ -1893,16 +2230,16 @@ void buildSurface_TexOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, c
 		float tg_t = getTg(height, depth_text, y_t);
 
 		float x_d;
-		double l_d = dispYCurve.l_vec[jj];
+		double L_d = dispYCurve.l_vec[jj] + L_start;
 
 		// find the dots that are near l_d
 		nearTexDots_dc_vec.clear();
 		nearTexDots_Rsz_vec.clear();
-		while ((TexDotsOnDisp.dot_center_vec[TexDot_Ind_L].y < ((float)l_d - R_y_max)) && TexDot_Ind_L < (nr_dots - 1)) {
+		while ((TexDotsOnDisp.dot_center_vec[TexDot_Ind_L].y < ((float)L_d - l_margin)) && TexDot_Ind_L < (nr_dots - 1)) {
 			TexDot_Ind_L++;
 		}
 		TexDot_Ind_H = TexDot_Ind_L;
-		while ((TexDotsOnDisp.dot_center_vec[TexDot_Ind_H].y < ((float)l_d + R_y_max)) && TexDot_Ind_H < (nr_dots - 1)) {
+		while ((TexDotsOnDisp.dot_center_vec[TexDot_Ind_H].y < ((float)L_d + l_margin)) && TexDot_Ind_H < (nr_dots - 1)) {
 			TexDot_Ind_H++;
 		}
 
@@ -1916,8 +2253,8 @@ void buildSurface_TexOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, c
 		// go through vertice from left to right
 		for (int ii = 0; ii < nr_points_width; ii++) {
 
-			double pt_x = stpsz_I * ii;
-			double pt_y = l_d;
+			double pt_x = stpsz_I * ii - x_offset;
+			double pt_y = L_d;
 			vertex_col = 1.0f;
 
 			for (int k = 0; k < nr_dots_near; k++) {
@@ -1933,7 +2270,7 @@ void buildSurface_TexOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, c
 
 			}
 
-			x_d = pt_x - x_offset;
+			x_d = pt_x;
 
 			vertices_data.vertices_vec.push_back(x_d);
 			vertices_data.vertices_vec.push_back(y_d);
@@ -1944,7 +2281,7 @@ void buildSurface_TexOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, c
 			vertices_data.light_normals_vec.push_back(1);
 
 
-			vertices_data.colors_vec.push_back((float)vertex_col);
+			vertices_data.colors_vec.push_back((float)(vertex_col_min + vertex_col * (vertex_col_max - vertex_col_min)));
 			vertices_data.colors_vec.push_back(0);
 			vertices_data.colors_vec.push_back(0);
 
@@ -1965,6 +2302,7 @@ void buildSurface_TexOnDisp(double shapeWidth, const CurvePtsData& dispYCurve, c
 		}
 	}
 
+
 }
 
 
@@ -1977,21 +2315,37 @@ void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeD
 	l_curve_disp = l_curve_text;
 	float l_text = l_curve_text;
 	TextureDotsData Tex_Dots_text;
-	generateTexDots(shapeWidth, l_text, Tex_dot_density, Tex_dot_radius, Tex_dot_separation_ratio, Tex_Dots_text);
+	generateTexDots_hybrid(shapeWidth, 1.25 * l_text, Tex_dot_density, Tex_dot_radius, Tex_dot_separation_ratio, nr_X_Lat_TexDot, jitter_Lat_TexDot, Tex_Dots_text);
+	
 
+	/*
 	// part 2: static image
 	CurvePtsData y_curve_data_text, y_curve_data_disp;
 	int nr_points_height_static = buildCurve_byDelY(ylMap_Text, y_curve_data_text);
 	y_curve_data_disp = y_curve_data_text;
 	buildSurface_TexOnText(stimulus_width, y_curve_data_disp, y_curve_data_text, distShapeToEye, Tex_Dots_text, my_verts_static);
 	buildContour(contourPanelSeparation, y_curve_data_disp, y_curve_data_text, distShapeToEye, my_contour_data);
-
+*/
 	// part 3: prebuild movement
 	CurvePtsData y_curve_data_text_m, y_curve_data_disp_m;
 	nr_points_height = buildCurve_byDelL(ylMap_Text, y_curve_data_text_m);
 	y_curve_data_disp_m = y_curve_data_text_m;
 	buildSurface_TexOnText(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, Tex_Dots_text, my_verts_moving);
-	buildAllColorsVec(my_verts_moving, AllTimeColorsVec_Moving);
+	my_verts_static = my_verts_moving;
+	buildContour(contourPanelSeparation, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, my_contour_data);
+
+	switch (use_rotateMag) {
+
+	case rot_shape:
+		nr_mvpts_max = guessNrmv(y_curve_data_text_m);
+		break;
+
+	case prop_to_depth:
+		nr_mvpts_max = (portion_max * shapeDepth / 40.0) * nr_points_height;
+		break;
+	}
+
+	buildAllColorsVec_TexOnText(shapeWidth, distShapeToEye, nr_mvpts_max, y_curve_data_text_m, my_verts_moving, Tex_Dots_text, AllTimeColorsVec_Moving);
 
 }
 
@@ -2005,43 +2359,74 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 	l_curve_text = ylMap_Text.l_vec.back();
 	float l_text = l_curve_text;
 
-	TextureDotsData Tex_Dots_text, Tex_Dots_disp;
-	generateTexDots(shapeWidth, l_text, Tex_dot_density, Tex_dot_radius, Tex_dot_separation_ratio, Tex_Dots_text);
+	TextureDotsData Tex_Dots_text;
+	generateTexDots_hybrid(shapeWidth, 1.25 * l_text, Tex_dot_density, Tex_dot_radius, Tex_dot_separation_ratio, nr_X_Lat_TexDot, jitter_Lat_TexDot, Tex_Dots_text);
 
 	CurveYLMap ylMap_Disp;
 	scanCurve(shapeHeight, dispDepth, ylMap_Disp);
 	l_curve_disp = ylMap_Disp.l_vec.back();
-	ProjTexDots_ResizeMap TexDots_RszMap_Disp;
-	sampleTexDotsResize(ylMap_Text, ylMap_Disp, distShapeToEye, TexDots_RszMap_Disp);
-	projectTexDots(distShapeToEye, ylMap_Text, ylMap_Disp, Tex_Dots_text, TexDots_RszMap_Disp, Tex_Dots_disp);
 
+
+
+	/*
 	// part 2: static surface
 	CurvePtsData y_curve_data_text, y_curve_data_disp;
 	int nr_points_height_static = buildCurve_byDelY(ylMap_Disp, y_curve_data_disp);
 	projectCurve(ylMap_Text, distShapeToEye, y_curve_data_disp, y_curve_data_text);
 	buildSurface_TexOnDisp(shapeWidth, y_curve_data_disp, y_curve_data_text, distShapeToEye, Tex_Dots_disp, my_verts_static);
 	buildContour(contourPanelSeparation, y_curve_data_disp, y_curve_data_text, distShapeToEye, my_contour_data);
-
+*/
 	// part 3: prebuild movement
 	CurvePtsData y_curve_data_text_m, y_curve_data_disp_m;
 	if (reinforce_texture_disparity) {
 		nr_points_height = buildCurve_byDelL(ylMap_Text, y_curve_data_text_m);
 		projectCurve(ylMap_Disp, distShapeToEye, y_curve_data_text_m, y_curve_data_disp_m);
 		buildSurface_TexOnText(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, Tex_Dots_text, my_verts_moving);
+		
+		switch (use_rotateMag) {
+
+		case rot_shape:
+			nr_mvpts_max = guessNrmv(y_curve_data_text_m);
+			break;
+
+		case prop_to_depth:
+			nr_mvpts_max = (portion_max * textDepth / 40.0) * nr_points_height;
+			break;
+		}
+
+		buildAllColorsVec_TexOnText(shapeWidth, distShapeToEye, nr_mvpts_max, y_curve_data_text_m, my_verts_moving, Tex_Dots_text, AllTimeColorsVec_Moving);
 	}
 	else {
+		TextureDotsData Tex_Dots_disp;
+		ProjTexDots_ResizeMap TexDots_RszMap_Disp;
+		sampleTexDotsResize(ylMap_Text, ylMap_Disp, distShapeToEye, TexDots_RszMap_Disp);
+		projectTexDots(distShapeToEye, ylMap_Text, ylMap_Disp, Tex_Dots_text, TexDots_RszMap_Disp, Tex_Dots_disp);
 		nr_points_height = buildCurve_byDelL(ylMap_Disp, y_curve_data_disp_m);
 		projectCurve(ylMap_Text, distShapeToEye, y_curve_data_disp_m, y_curve_data_text_m);
 		buildSurface_TexOnDisp(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, Tex_Dots_disp, my_verts_moving);
-	}
-	buildAllColorsVec(my_verts_moving, AllTimeColorsVec_Moving);
 
+		switch (use_rotateMag) {
+
+		case rot_shape:
+			nr_mvpts_max = guessNrmv(y_curve_data_disp_m);
+			break;
+
+		case prop_to_depth:
+			nr_mvpts_max = (portion_max * dispDepth / 40.0) * nr_points_height;
+			break;
+		}
+
+		buildAllColorsVec_TexOnDisp(shapeWidth, distShapeToEye, nr_mvpts_max, y_curve_data_disp_m, my_verts_moving, Tex_Dots_disp, AllTimeColorsVec_Moving);
+	}
+	buildContour(contourPanelSeparation, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, my_contour_data);
+	my_verts_static = my_verts_moving;
 
 }
 void initSurface() {
 
 	stimulus_built = false;
 
+	// we chose to 
 	dist_toEye = -(display_distance_jittered - depth_disp);
 	stimulus_height = tan((DEG2RAD * visual_angle) / 2) * 2 * dist_toEye;
 	stimulus_visiblewidth = ratio_visiblewidth_height * stimulus_height;
@@ -2049,19 +2434,20 @@ void initSurface() {
 	// generate the surface vertices
 	if (abs(depth_disp - depth_text) < 0.1) {
 		buildSurface_congruent(stimulus_width, stimulus_height, depth_text, dist_toEye, stimulus_visiblewidth);
-
 	}
 	else {
 		buildSurface_incongruent(stimulus_width, stimulus_height, depth_disp, depth_text, dist_toEye, stimulus_visiblewidth);
 
 	}
+	max_intensity = max_intensity_flat_light + (max_intensity_deep_light - max_intensity_flat_light) * (depth_text - depth_flat_light) / (depth_deep_light - depth_flat_light);
+	amb_intensity = adjustAmbient(depth_text, max_intensity, ambVDif_flat_light, ambVDif_deep_light, depth_flat_light, depth_deep_light);
 
 	stimulus_built = true;
 }
 
 void idle()
 {
-	if (!testVisualStimuliOnly) {
+	if (fingerTracking) {
 		updateTheMarkers();
 		online_apparatus_alignment();
 		online_fingers();
@@ -2178,15 +2564,14 @@ void initStreams()
 		cout << "draw: " << targetCueID << endl;
 	}
 
-
 	if (targetCueID == 0) {
 		reinforce_texture_disparity = true;
-		mv_num = 3;
+
 		speed_moderator = speed_moderator_Text;
 	}
 	else if (targetCueID == 1) {
 		reinforce_texture_disparity = false;
-		mv_num = 3;
+
 		speed_moderator = speed_moderator_Disp;
 	}
 	else {
@@ -2258,7 +2643,7 @@ void initVariables()
 	stimulus_visiblewidth = ratio_visiblewidth_height * stimulus_height;
 
 	if (testVisualStimuliOnly) {
-
+		fingerTracking = false;
 		initProjectionScreen(display_distance);
 		display_distance_jittered = display_distance;
 		initSurface();
@@ -2271,12 +2656,11 @@ void initVariables()
 void initBlock()
 {
 
-
 	// initialize the trial matrix
 	if (session_full_vs_extra) {
 		trial.init(parameters);
 		repetition = 3;
-		totalTrNum = 6 * 8 * repetition;
+		totalTrNum = 6 * 6 * repetition;
 
 	}
 	else {
@@ -2286,7 +2670,6 @@ void initBlock()
 	}
 	trial.next();
 	//trial.next(false);
-
 	trialNum = 1;
 
 }
@@ -2295,27 +2678,43 @@ void initBlock()
 void initMotionFlow() {
 
 	move_cnt = 0;
+	if(reinforce_texture_disparity)
+		speed_moderator = speed_moderator_Text;
+	else
+		speed_moderator = speed_moderator_Disp;
 
-	nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
+
+	movement_percent = (double)nr_mvpts_max / nr_points_height;
+
 	updateEveryMs = cycle_time / (nr_mvpts_max);
-	if (reinforce_texture_disparity) {
-		//nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);		
-		speed_moderator = speed_moderator_Text * l_curve_text / 60;
-	}
-	else {
-		//nr_mvpts_max = round(l_curve_disp / l_curve_text * (nr_points_height - 1) / 4 / (rock_movement_divider));
-		speed_moderator = speed_moderator_Disp * l_curve_disp / 60;
-	}
-	
 
-	//nr_mvpts_max = round((nr_points_height - 1) / 4 / rock_movement_divider);
+	if (updateEveryMs < 50) {
+		double speed_moderator_new = round(speed_moderator * 1.2);
+		updateEveryMs = (cycle_time / nr_mvpts_max) * speed_moderator_new / speed_moderator;
+		speed_moderator = speed_moderator_new;
+	}
 
+	if (updateEveryMs > 80) {
+		double speed_moderator_new = round(speed_moderator / 1.5);
+		updateEveryMs = (cycle_time / nr_mvpts_max) * speed_moderator_new / speed_moderator;
+		speed_moderator = speed_moderator_new;
+	}
 
 	last_time = trial_timer.getElapsedTimeInMilliSec();
 
 	timestamp_mtFlow = trial_timer.getElapsedTimeInMilliSec();
 
 }
+
+
+float adjustAmbient(double textDepth, float maxInt, double rateAmbvsDiff_flat, double rateAmbvsDiff_deep, double Depth_flat, double Depth_deep) {
+
+	double rateAmbvsDiff_new = rateAmbvsDiff_flat + (rateAmbvsDiff_deep - rateAmbvsDiff_flat) * (textDepth - Depth_flat) / (Depth_deep - Depth_flat);
+	float newAmbient = maxInt * (rateAmbvsDiff_new / (rateAmbvsDiff_new + 1));
+
+	return newAmbient;
+}
+
 
 void initTrial()
 {

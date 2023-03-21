@@ -94,7 +94,7 @@ Vector3d ind, indJoint, thm, thmJoint, ind_mse1, thm_mse1, ind_mse2, thm_mse2;
 Vector3d homePos(0, 0, 0), thmTarget(0, 0, 0), visTarget(0, 0, 0), centeredObjEdge(0, 0, 0);
 Vector3d vec_ind_thm, thmToHome, thmToTarget;
 Vector3d indexCalibrationPoint(0, 0, 0), thumbCalibrationPoint(0, 0, 0), CalibrationPoint(0, 0, 0);
-Vector3d indexCalibration_offset(-8, 0, -5.4), thumbCalibration_offset(-8, 0, 5.4);
+Vector3d indexCalibration_offset(-8, 0, -6), thumbCalibration_offset(-8, 0, 6);
 
 bool allVisibleIndex = false;
 bool allVisibleThumb = false;
@@ -287,7 +287,7 @@ float lightDir_z = 0.8;
 float depth_range_light = 28;
 float depth_flat_light = 20;
 float depth_deep_light = 48;
-float ambVDif_flat_light = 1.2;
+float ambVDif_flat_light = 1.0;
 float ambVDif_deep_light = 0.6;
 float max_intensity_range = 0.12;
 float max_intensity_flat_light = 0.75;
@@ -296,9 +296,8 @@ float max_intensity_deep_light = 0.95;
 /********** MOVEMENT ***************/
 int move_cnt = 0;
 int nr_mvpts_max = 20;
-double speed_moderator = 7;
-double speed_moderator_Text = 7; // 9;
-double speed_moderator_Disp = 7; // 5.5;
+double speed_moderator = 6;
+double speed_moderator_default = 6; // 9;
 double updateEveryMs = 60;
 double cycle_time = 1200;
 double motionFlowTime = cycle_time;
@@ -352,8 +351,8 @@ double timestamp_mtFlow;
 double fixateTime = 600;
 
 /*********** for DEBUGGING **********/
-
-bool testVisualStimuliOnly = true; 
+bool testVisualStimuliOnly = false; 
+int display_cnt;
 /*************************** FUNCTIONS ***********************************/
 void initOptotrak();
 void initMotors();

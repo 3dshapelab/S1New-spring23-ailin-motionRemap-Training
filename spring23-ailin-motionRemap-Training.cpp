@@ -452,7 +452,7 @@ void drawInfo_calibrationMarkers(GLText curText) {
 	else
 		glColor3fv(glRed);
 	curText.draw("Index Calibration Point " + stringify< Eigen::Matrix<double, 1, 3> >(markers[calibration_I].p.transpose()));
-	curText.draw("free marker 24 " + stringify< Eigen::Matrix<double, 1, 3> >(markers[24].p.transpose()));
+
 	curText.draw(" ");
 
 	if (allVisibleThumb)
@@ -654,18 +654,20 @@ void drawInfo()
 			text.draw("# Name: " + subjectName);
 			text.draw("# IOD: " + stringify<double>(interoculardistance));
 			glColor3fv(glRed);
-			if (!trainingCueIsRandom) {
+			if (testVisualStimuliOnly) {
 				if (reinforce_texture_disparity) {
-					text.draw("----------------------------- P ----------");
+					text.draw("train for : P ");
 				}
 				else {
-					text.draw("--------- E ------------------------------");
+					text.draw("train for : E ");
 				}
+
+				text.draw("# depth texture: " + stringify<double>(depth_text));
+				text.draw("# depth stereo: " + stringify<double>(depth_disp));
 			}
 			//text.draw("# move cnt: " + stringify<int>(move_cnt));
 			//text.draw("#reinforce_texture_disparity: " + stringify<bool>(reinforce_texture_disparity));
-			//text.draw("# depth texture: " + stringify<double>(depth_text));
-			//text.draw("# depth stereo: " + stringify<double>(depth_disp));
+
 			//text.draw("# elasped time: " + stringify<double>(ElapsedTime));
 
 			break;
@@ -677,9 +679,10 @@ void drawInfo()
 		case trial_viewMtFlow:
 		case trial_MSE_second:
 		case trial_MSE_reset_second:
-
-
 			text.draw(" ");
+			text.draw("# cnt: " + stringify<int>(display_cnt));
+			text.draw("# updateEveryMs: " + stringify<double>(updateEveryMs));
+			text.draw("# speed: " + stringify<double>(speed_moderator));
 			text.draw("# current stage: " + stringify<int>(current_stage));
 			text.draw("# trial Num: " + stringify<int>(trialNum));
 
@@ -741,7 +744,7 @@ void onlineTrial() {
 
 	case stimulus_previewMotion:
 		// monitor the time and update vertices
-		ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
+		//ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
 		if ((move_cnt * speed_moderator) / (nr_mvpts_max) > 2 * mv_num) {
 			//if ((ElapsedTime - timestamp_mtFlow) > motionFlowTime) {		
 			current_stage = stimulus_preview;
@@ -800,7 +803,7 @@ void onlineTrial() {
 
 	case trial_viewMtFlow:
 		// monitor the time and update vertices
-		ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
+		//ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
 		if ((move_cnt * speed_moderator) / (nr_mvpts_max) > 2 * mv_num) {		
 
 			if (testVisualStimuliOnly) {
@@ -817,6 +820,8 @@ void onlineTrial() {
 			if (ElapsedTime - last_time > updateEveryMs) {
 				last_time = ElapsedTime;
 				move_cnt++;
+				if (move_cnt % 5 == 2)
+					display_cnt++;
 				updateVerticesData(move_cnt, nr_mvpts_max, AllTimeColorsVec_Moving);
 			}
 		}
@@ -903,7 +908,7 @@ void advanceTrial()
 
 		if (!trial.isEmpty() && (trialNum < trialNum_max)) {
 
-			if (trialNum % 24 == 0) {
+			if (trialNum % 16 == 0) {
 				beepOk(4);
 				percentComplete = trialNum / (totalTrNum / 100.0);
 				trial.next();
@@ -2317,15 +2322,6 @@ void buildSurface_congruent(double shapeWidth, double shapeHeight, double shapeD
 	TextureDotsData Tex_Dots_text;
 	generateTexDots_hybrid(shapeWidth, 1.25 * l_text, Tex_dot_density, Tex_dot_radius, Tex_dot_separation_ratio, nr_X_Lat_TexDot, jitter_Lat_TexDot, Tex_Dots_text);
 	
-
-	/*
-	// part 2: static image
-	CurvePtsData y_curve_data_text, y_curve_data_disp;
-	int nr_points_height_static = buildCurve_byDelY(ylMap_Text, y_curve_data_text);
-	y_curve_data_disp = y_curve_data_text;
-	buildSurface_TexOnText(stimulus_width, y_curve_data_disp, y_curve_data_text, distShapeToEye, Tex_Dots_text, my_verts_static);
-	buildContour(contourPanelSeparation, y_curve_data_disp, y_curve_data_text, distShapeToEye, my_contour_data);
-*/
 	// part 3: prebuild movement
 	CurvePtsData y_curve_data_text_m, y_curve_data_disp_m;
 	nr_points_height = buildCurve_byDelL(ylMap_Text, y_curve_data_text_m);
@@ -2366,16 +2362,6 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 	scanCurve(shapeHeight, dispDepth, ylMap_Disp);
 	l_curve_disp = ylMap_Disp.l_vec.back();
 
-
-
-	/*
-	// part 2: static surface
-	CurvePtsData y_curve_data_text, y_curve_data_disp;
-	int nr_points_height_static = buildCurve_byDelY(ylMap_Disp, y_curve_data_disp);
-	projectCurve(ylMap_Text, distShapeToEye, y_curve_data_disp, y_curve_data_text);
-	buildSurface_TexOnDisp(shapeWidth, y_curve_data_disp, y_curve_data_text, distShapeToEye, Tex_Dots_disp, my_verts_static);
-	buildContour(contourPanelSeparation, y_curve_data_disp, y_curve_data_text, distShapeToEye, my_contour_data);
-*/
 	// part 3: prebuild movement
 	CurvePtsData y_curve_data_text_m, y_curve_data_disp_m;
 	if (reinforce_texture_disparity) {
@@ -2418,6 +2404,7 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 
 		buildAllColorsVec_TexOnDisp(shapeWidth, distShapeToEye, nr_mvpts_max, y_curve_data_disp_m, my_verts_moving, Tex_Dots_disp, AllTimeColorsVec_Moving);
 	}
+
 	buildContour(contourPanelSeparation, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, my_contour_data);
 	my_verts_static = my_verts_moving;
 
@@ -2441,6 +2428,29 @@ void initSurface() {
 	}
 	max_intensity = max_intensity_flat_light + (max_intensity_deep_light - max_intensity_flat_light) * (depth_text - depth_flat_light) / (depth_deep_light - depth_flat_light);
 	amb_intensity = adjustAmbient(depth_text, max_intensity, ambVDif_flat_light, ambVDif_deep_light, depth_flat_light, depth_deep_light);
+	
+	movement_percent = (double)nr_mvpts_max / nr_points_height;
+
+	
+	double speed_moderator_new = speed_moderator_default;
+	updateEveryMs = cycle_time / (nr_mvpts_max);
+
+	if (updateEveryMs < 50) {
+		while (updateEveryMs < 50 && speed_moderator_new < 8) {
+			speed_moderator_new = speed_moderator_new + 1;
+			updateEveryMs = (cycle_time / nr_mvpts_max) * speed_moderator_new / speed_moderator_default;
+		}
+	}
+
+	if (updateEveryMs > 80) {
+		while (updateEveryMs > 80 && speed_moderator_new > 3) {
+			speed_moderator_new = speed_moderator_new - 1;
+			updateEveryMs = (cycle_time / nr_mvpts_max) * speed_moderator_new / speed_moderator_default;
+		}
+	}
+
+	speed_moderator = speed_moderator_new;
+
 
 	stimulus_built = true;
 }
@@ -2451,10 +2461,10 @@ void idle()
 		updateTheMarkers();
 		online_apparatus_alignment();
 		online_fingers();
-	}
-	onlineTrial();
+	}	
 	ElapsedTime = trial_timer.getElapsedTimeInMilliSec();
-
+	onlineTrial();
+	glutPostRedisplay();
 }
 
 
@@ -2566,13 +2576,9 @@ void initStreams()
 
 	if (targetCueID == 0) {
 		reinforce_texture_disparity = true;
-
-		speed_moderator = speed_moderator_Text;
 	}
 	else if (targetCueID == 1) {
 		reinforce_texture_disparity = false;
-
-		speed_moderator = speed_moderator_Disp;
 	}
 	else {
 		string error_on_file_io = string("invalid targetCueID. has to be 0 1 or 33");
@@ -2580,7 +2586,7 @@ void initStreams()
 		shutdown();
 	}
 
-	std::string st_cue = std::to_string(targetCueID);
+	//std::string st_cue = std::to_string(targetCueID);
 
 	// Subject name
 	subjectName = parameters.find("SubjectName");
@@ -2594,9 +2600,11 @@ void initStreams()
 
 	if (sessionNum == 0) {
 		session_full_vs_extra = false;
-		responseFileName = dirName + "/" + subjectName + "_training_init_cue" + st_cue + ".txt";
+		//responseFileName = dirName + "/" + subjectName + "_training_init_cue" + st_cue + ".txt";
+		responseFileName = dirName + "/" + subjectName + "_training_INIT.txt";
 		// Principal streams files
-		if ((util::fileExists(dirName + "/" + subjectName + "_training_init_cue0.txt") || util::fileExists(dirName + "/" + subjectName + "_training_init_cue1.txt")) && subjectName != "junk")
+		//if ((util::fileExists(dirName + "/" + subjectName + "_training_init_cue0.txt") || util::fileExists(dirName + "/" + subjectName + "_training_init_cue1.txt")) && subjectName != "junk")
+		if (util::fileExists(dirName + "/" + subjectName + "_training_INIT.txt") && subjectName != "junk")
 		{
 			string error_on_file_io = string("file already exists");
 			cerr << error_on_file_io << endl;
@@ -2660,7 +2668,7 @@ void initBlock()
 	if (session_full_vs_extra) {
 		trial.init(parameters);
 		repetition = 3;
-		totalTrNum = 6 * 6 * repetition;
+		totalTrNum = 5 * 7 * repetition;
 
 	}
 	else {
@@ -2669,36 +2677,15 @@ void initBlock()
 		totalTrNum = 12 * repetition;
 	}
 	trial.next();
-	//trial.next(false);
 	trialNum = 1;
 
 }
 
 
+
 void initMotionFlow() {
 
 	move_cnt = 0;
-	if(reinforce_texture_disparity)
-		speed_moderator = speed_moderator_Text;
-	else
-		speed_moderator = speed_moderator_Disp;
-
-
-	movement_percent = (double)nr_mvpts_max / nr_points_height;
-
-	updateEveryMs = cycle_time / (nr_mvpts_max);
-
-	if (updateEveryMs < 50) {
-		double speed_moderator_new = round(speed_moderator * 1.2);
-		updateEveryMs = (cycle_time / nr_mvpts_max) * speed_moderator_new / speed_moderator;
-		speed_moderator = speed_moderator_new;
-	}
-
-	if (updateEveryMs > 80) {
-		double speed_moderator_new = round(speed_moderator / 1.5);
-		updateEveryMs = (cycle_time / nr_mvpts_max) * speed_moderator_new / speed_moderator;
-		speed_moderator = speed_moderator_new;
-	}
 
 	last_time = trial_timer.getElapsedTimeInMilliSec();
 
@@ -2858,14 +2845,11 @@ void calibrate_fingers()
 			}
 			else {
 				calibrationNum++;
-				if (Exp_Initialized) {
-					Fingers_Calibrated = true;
-					initTrial();
-				}
-				else {
-					currentInitStep = to_MarkHomePos;
-					Fingers_Calibrated = true;
-				}
+
+				currentInitStep = to_MarkHomePos;
+				Fingers_Calibrated = true;
+
+
 			}
 		}
 		else {
@@ -2903,7 +2887,12 @@ void calibrate_system() {
 			beepOk(1);
 			homePos = (ind + thm) / 2;
 
-			currentInitStep = to_MoveApparatus;
+			if (Exp_Initialized) {
+				initTrial();
+			}
+			else {
+				currentInitStep = to_MoveApparatus;
+			}			
 		}
 		else {
 			beepOk(3);

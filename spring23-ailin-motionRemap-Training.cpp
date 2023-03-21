@@ -680,8 +680,6 @@ void drawInfo()
 		case trial_MSE_second:
 		case trial_MSE_reset_second:
 			text.draw(" ");
-			text.draw("# cnt: " + stringify<int>(display_cnt));
-			text.draw("# updateEveryMs: " + stringify<double>(updateEveryMs));
 			text.draw("# speed: " + stringify<double>(speed_moderator));
 			text.draw("# current stage: " + stringify<int>(current_stage));
 			text.draw("# trial Num: " + stringify<int>(trialNum));
@@ -820,8 +818,7 @@ void onlineTrial() {
 			if (ElapsedTime - last_time > updateEveryMs) {
 				last_time = ElapsedTime;
 				move_cnt++;
-				if (move_cnt % 5 == 2)
-					display_cnt++;
+
 				updateVerticesData(move_cnt, nr_mvpts_max, AllTimeColorsVec_Moving);
 			}
 		}
@@ -908,7 +905,7 @@ void advanceTrial()
 
 		if (!trial.isEmpty() && (trialNum < trialNum_max)) {
 
-			if (trialNum % 16 == 0) {
+			if (trialNum % 20 == 0) {
 				beepOk(4);
 				percentComplete = trialNum / (totalTrNum / 100.0);
 				trial.next();
@@ -2387,6 +2384,7 @@ void buildSurface_incongruent(double shapeWidth, double shapeHeight, double disp
 		ProjTexDots_ResizeMap TexDots_RszMap_Disp;
 		sampleTexDotsResize(ylMap_Text, ylMap_Disp, distShapeToEye, TexDots_RszMap_Disp);
 		projectTexDots(distShapeToEye, ylMap_Text, ylMap_Disp, Tex_Dots_text, TexDots_RszMap_Disp, Tex_Dots_disp);
+
 		nr_points_height = buildCurve_byDelL(ylMap_Disp, y_curve_data_disp_m);
 		projectCurve(ylMap_Text, distShapeToEye, y_curve_data_disp_m, y_curve_data_text_m);
 		buildSurface_TexOnDisp(shapeWidth, y_curve_data_disp_m, y_curve_data_text_m, distShapeToEye, Tex_Dots_disp, my_verts_moving);
@@ -2450,7 +2448,6 @@ void initSurface() {
 	}
 
 	speed_moderator = speed_moderator_new;
-
 
 	stimulus_built = true;
 }
@@ -2889,6 +2886,7 @@ void calibrate_system() {
 
 			if (Exp_Initialized) {
 				initTrial();
+				visibleInfo = false;
 			}
 			else {
 				currentInitStep = to_MoveApparatus;

@@ -352,7 +352,7 @@ double fixateTime = 600;
 
 /*********** for DEBUGGING **********/
 bool testVisualStimuliOnly = false; 
-int display_cnt;
+
 /*************************** FUNCTIONS ***********************************/
 void initOptotrak();
 void initMotors();

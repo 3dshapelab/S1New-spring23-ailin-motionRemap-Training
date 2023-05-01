@@ -1,0 +1,23 @@
+# Comments start with #
+# If subjectName is "junk" overwrites
+# Specify BaseDir with the backslash as follows
+#the values for each subject are written in this file
+BaseDir: dataset\junk\
+
+####### INPUT ########
+SubjectName: placeHolder
+Session: 0
+######################
+# number of repetitions
+Repetitions: 4
+RandomizeWithoutConsecutive: 1
+# randomize levels of factors (1) or not (0)
+Randomize: 1
+
+#########################################
+# Here follows the list of all factors, they all start with "f"
+#########################################
+fmeanDepth: 23 25 27 29 31 33 35 37 39 41 43 45
+
+
+
